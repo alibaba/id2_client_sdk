@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{b7a46e12-b7cc-46b8-9936-56d054265c2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{df195ffa-6613-43ae-9212-1c87823497df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\util">
+      <UniqueIdentifier>{6e662705-903b-4b7b-a8a1-b675edb16298}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\core">
+      <UniqueIdentifier>{406f7dfc-87d7-41e3-83e3-c2249c232122}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\log">
+      <UniqueIdentifier>{ebaee3c3-aef8-41df-8a3e-a2e93e88a3e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="platform">
+      <UniqueIdentifier>{8c171c64-2fdc-4d66-899d-983abe4e8984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hal">
+      <UniqueIdentifier>{66e86b36-ffbf-4d68-8558-66bea4efbc76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hal\win_emulator">
+      <UniqueIdentifier>{ad0f1f61-14ed-4b89-8b28-311f490d7434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hal\win_emulator\irot_hal">
+      <UniqueIdentifier>{6e67ed70-2874-4c48-a7bb-32b132668813}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hal\win_emulator\se_driver">
+      <UniqueIdentifier>{9019ba23-e6dc-4e8d-ba6c-575b7883d1b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demo">
+      <UniqueIdentifier>{8987e464-b5a2-4f4e-808d-ae3eeaa02b3f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\util\util.c">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\log\log.c">
+      <Filter>src\log</Filter>
+    </ClCompile>
+    <ClCompile Include="irot_hal\irot_hal.c">
+      <Filter>hal\win_emulator\irot_hal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\id2_client.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\platform\linux\irot_pal.c">
+      <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo\id2_client_demo.c">
+      <Filter>demo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\demo\id2_client_main.c">
+      <Filter>demo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\mtk_se_adapter.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\std_se_adapter.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
+    <ClCompile Include="se_driver\se_driver.c">
+      <Filter>hal\win_emulator\se_driver</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\util\util.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\id2_client.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>hal\win_emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\error_code.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\log\log.h">
+      <Filter>src\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\se_driver.h">
+      <Filter>hal\win_emulator\se_driver</Filter>
+    </ClInclude>
+    <ClInclude Include="..\irot_hal.h">
+      <Filter>hal\win_emulator\irot_hal</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
