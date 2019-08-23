@@ -1,9 +1,8 @@
-# README for ID² Clien SDK
+# README for ID² Client SDK
 
-
+<br />
 IoT设备身份认证ID²（Internet Device ID），是一种物联网设备的可信身份标识，具备不可篡改、不可伪造、全球唯一的安全属性，是实现万物互联、服务流转的关键基础设施。<br />
 <br />
-
 ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID²开放平台。此SDK, 支持两种载体Demo和SE（Secure Element）：<br />
 
 - Demo载体：用于ID²设备端功能的演示，正式产品，需切换到安全载体（Soft-KM, SE, TEE）。<br />
@@ -16,7 +15,7 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 > |—— make.rules：编译配置，可配置编译工具链和编译参数。<br />
 > |—— make.settings：ID²配置，如调试信息、空发功能和载体选择。<br />
 > |—— modules：ID²和ID²依赖的模块。<br />
-> |—— sample：示例代码。<br />
+> |—— sample：示例代码。
 
 
 <a name="cGT85"></a>
@@ -31,13 +30,13 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 ## 编译配置：
 
 - make.rules：
-> CROSS_COMPILE： 编译使用的工具链。<br />
-> CFLAGS：编译工具链的编译参数。<br />
+>   CROSS_COMPILE： 编译使用的工具链。<br />
+>   CFLAGS：编译工具链的编译参数。<br />
 
 - make.settings：
-> CONFIG_ID2_DEBUG：ID²调试信息的开关。<br />
-> CONFIG_ID2_OTP：ID²密钥在使用时动态下发功能的开关。
-> CONFIG_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。
+>   CONFIG_ID2_DEBUG：ID²调试信息的开关。<br />
+>   CONFIG_ID2_OTP：ID²密钥在使用时动态下发功能的开关。
+>   CONFIG_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。
 
 
 <a name="gG44j"></a>
@@ -55,7 +54,36 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 
 
 测试成功（仅设备端接口测试，非真实交互验证），日志显示如下：
-> ![aaaa.png](https://intranetproxy.alipay.com/skylark/lark/0/2019/png/30117/1566549685207-f3d6181b-4a91-46ee-8034-3c7b11831718.png#align=left&display=inline&height=277&name=aaaa.png&originHeight=636&originWidth=1714&size=44977&status=done&width=746)
+>  
+> <LS_LOG> id2_client_get_id 649: ID2: 000FFFFFDB1D8DC78DDCB800 <br />
+> <LS_LOG> id2_client_generate_authcode 170: <br />
+> ============ ID2 Validation Json Message ============: <br />
+> { <br />
+>        "reportVersion":        "1.0.0", <br />
+>        "sdkVersion":   "2.0.0", <br />
+>        "date": "Aug 23 2019 18:17:13", <br />
+>        "testContent":  [{ <br />
+>                        "api":  "id2_client_get_id", <br />
+>                        "args": { <br />
+>                        }, <br />
+>                        "result":       "000FFFFFDB1D8DC78D" <br />
+>                }, { <br />
+>                        "api":  "id2_client_get_challenge_auth_code", <br />
+>                        "args": { <br />
+>                                "challenge":    "55B83408399FA660F05C82E4F25333DC", <br />
+>                                "extra":        "abcd1234" <br />
+>                        }, <br />
+>                        "result":       "2~2~DB6B95A6DBBBB0CD~55B83408399FA660F05C82E4F25333DC~lRXxHxd51gE6mFat6n1lBTnyWe+aEM92pm+HyDIRgecqPlyoRTxaq/utxfegaUZ8" <br />
+>                }, { <br />
+>                        "api":  "id2_client_get_timestamp_auth_code", <br />
+>                        "args": { <br />
+>                                "timestamp":    "1512022279204", <br />
+>                                "extra":        "abcd1234" <br />
+>                        }, <br />
+>                        "result":       "3~2~DB6B95A6DBBBB0CD~1512022279204~wndE8va7VsjxsohSIiBVLCuVtUSkANmknZrG3Q+xp68qPlyoRTxaq/utxfegaUZ8" <br />
+>                }]
+> } <br />
+> <LS_LOG> id2_client_generate_authcode 186: =====>ID2 Client Generate AuthCode End. <br />
 
 
 
