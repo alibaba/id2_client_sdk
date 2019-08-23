@@ -54,7 +54,7 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 
 
 测试成功（仅设备端接口测试，非真实交互验证），日志显示如下：
->  
+>  <br />
 > <LS_LOG> id2_client_get_id 649: ID2: 000FFFFFDB1D8DC78DDCB800 <br />
 > <LS_LOG> id2_client_generate_authcode 170: <br />
 > ============ ID2 Validation Json Message ============: <br />
@@ -63,25 +63,8 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 >        "sdkVersion":   "2.0.0", <br />
 >        "date": "Aug 23 2019 18:17:13", <br />
 >        "testContent":  [{ <br />
->                        "api":  "id2_client_get_id", <br />
->                        "args": { <br />
->                        }, <br />
->                        "result":       "000FFFFFDB1D8DC78D" <br />
->                }, { <br />
->                        "api":  "id2_client_get_challenge_auth_code", <br />
->                        "args": { <br />
->                                "challenge":    "55B83408399FA660F05C82E4F25333DC", <br />
->                                "extra":        "abcd1234" <br />
->                        }, <br />
->                        "result":       "2~2~DB6B95A6DBBBB0CD~55B83408399FA660F05C82E4F25333DC~lRXxHxd51gE6mFat6n1lBTnyWe+aEM92pm+HyDIRgecqPlyoRTxaq/utxfegaUZ8" <br />
->                }, { <br />
->                        "api":  "id2_client_get_timestamp_auth_code", <br />
->                        "args": { <br />
->                                "timestamp":    "1512022279204", <br />
->                                "extra":        "abcd1234" <br />
->                        }, <br />
->                        "result":       "3~2~DB6B95A6DBBBB0CD~1512022279204~wndE8va7VsjxsohSIiBVLCuVtUSkANmknZrG3Q+xp68qPlyoRTxaq/utxfegaUZ8" <br />
->                }]
+>                ....... <br />
+>                }] <br />
 > } <br />
 > <LS_LOG> id2_client_generate_authcode 186: =====>ID2 Client Generate AuthCode End. <br />
 
