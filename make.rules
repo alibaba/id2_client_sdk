@@ -1,0 +1,9 @@
+
+CROSS_COMPILE :=
+
+CC      := ${CROSS_COMPILE}gcc
+AR      := ${CROSS_COMPILE}ar
+RANLIB  := ${CROSS_COMPILE}ranlib
+
+CFLAGS  := -Wall -Os -Wdeclaration-after-statement -ffunction-sections -fdata-sections
+
