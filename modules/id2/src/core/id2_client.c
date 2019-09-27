@@ -419,7 +419,8 @@ static irot_result_t _id2_gen_auth_code(uint8_t auth_code_type, const char* serv
     }
 
     /* check extra */
-    if (extra_len > ID2_MAX_EXTRA_LEN) {
+    if (extra_len > ID2_MAX_EXTRA_LEN || (
+        extra != NULL && extra_len == 0)) {
         id2_log_error("invalid extra data length, %d.\n", extra_len);
         return IROT_ERROR_EXCESS_DATA;
     }
@@ -594,6 +595,11 @@ irot_result_t id2_client_get_version(uint32_t* version)
         return IROT_ERROR_GENERIC;
     }
 
+    if (version == NULL) {
+        id2_log_error("invalid input arg.\n");
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
     *version = ID2_CLIENT_VERSION_NUMBER;
 
     return IROT_SUCCESS;
@@ -758,6 +764,7 @@ _out:
 irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_len)
 {
     uint32_t device_random[2];
+    uint8_t random_str[ID2_MAX_DEVICE_RANDOM_LEN + 1];
 
     id2_log_debug("[id2_client_get_device_challenge enter.]\n");
 
@@ -772,7 +779,7 @@ irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_
     }
 
     id2_plat_get_random((uint8_t*)&device_random, sizeof(device_random));
-    if (ls_osa_snprintf((char*)random, ID2_MAX_DEVICE_RANDOM_LEN + 1,
+    if (ls_osa_snprintf((char*)random_str, ID2_MAX_DEVICE_RANDOM_LEN + 1,
                "%08X%08X", device_random[0], device_random[1]) < 0) {
         id2_log_error("device random format exchange error.\n");
         return IROT_ERROR_GENERIC;
@@ -782,8 +789,8 @@ irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_
         *random_len = ID2_MAX_DEVICE_RANDOM_LEN;
     }
 
-    memset(s_device_random, 0x00, ID2_MAX_DEVICE_RANDOM_LEN);
-    memcpy(s_device_random, random, *random_len);
+    memcpy(random, random_str, *random_len);
+    memcpy(s_device_random, random_str, *random_len);
     s_device_random_len = *random_len;
 
     return IROT_SUCCESS;
@@ -996,6 +1003,10 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
     if (in_len == 0) {
         id2_log_error("seed is null.\n");
         return IROT_ERROR_BAD_PARAMETERS;
+    }
+    if (in_len > ID2_MAX_SEED_LEN) {
+        id2_log_error("seed is excess data.\n");
+        return IROT_ERROR_EXCESS_DATA;
     }
 
     if (*secret_len < ID2_DERIV_SECRET_LEN) {

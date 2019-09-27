@@ -35,15 +35,16 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 
 - make.settings：
 >   CONFIG_ID2_DEBUG：ID²调试信息的开关。<br />
->   CONFIG_ID2_OTP：ID²密钥在使用时动态下发功能的开关。
->   CONFIG_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。
+>   CONFIG_ID2_OTP：ID²密钥在使用时动态下发功能的开关。<br />
+>   CONFIG_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。<br />
+>   CONFIG_ID2_MDU：ID²的模组载体的开关，提供主控ID²SDK, 需使能CONFIG_ID2_MDU宏。<br />
 
 
 <a name="gG44j"></a>
 ## 编译SDK：
  在SDK目录，运行如下命令：
->  $ make clean
->  $ make
+>  $ make clean <br />
+>  $ make <br />
 
 编译成功，生成的静态库和应用程序统一放在SDK的out目录。
 
@@ -72,7 +73,8 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 
 <a name="MUmQg"></a>
 # 其他：
-更多文档，如设备端适配和自主验证，请查阅ID²官方。
+更多文档，如设备端适配和自主验证，请查阅官网文档：
+https://help.aliyun.com/product/100846.html?spm=a2c4g.11186623.6.540.928e55380nu9ZO
 
 
 

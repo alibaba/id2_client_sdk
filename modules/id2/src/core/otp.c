@@ -613,7 +613,7 @@ irot_result_t id2_client_get_prov_stat(bool* is_prov)
     *is_prov = true;
 
 _out:
-    id2_log_debug("id2 prov state: %s\n", *is_prov == true ? "true" : "false");
+    id2_log_info("id2 prov state: %s\n", *is_prov == true ? "true" : "false");
 
     return IROT_SUCCESS;
 }

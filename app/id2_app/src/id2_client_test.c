@@ -177,7 +177,7 @@ static int id2_client_test_get_device_challenge(void)
         return -1;
     }
 
-    for (i = 1; i < ID2_MAX_DEVICE_RANDOM_LEN + 4; i += 4) {
+    for (i = 1; i < ID2_MAX_DEVICE_RANDOM_LEN + 8; i += 4) {
         random_len = i;
         ret = id2_client_get_device_challenge(random, &random_len);
         if (ret != IROT_SUCCESS) {

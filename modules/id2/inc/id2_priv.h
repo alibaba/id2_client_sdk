@@ -8,9 +8,6 @@
 #include "ls_osa.h"
 #include "id2_config.h"
 
-#define ID2_KEY_NAME          "id2_key"
-#define ID2_KEY_NAME_LEN       7
-
 #if defined(CONFIG_ID2_DEBUG)
 #define id2_log_debug(_f, ...)		            ls_osa_print("%s %d: " _f,\
                                                             __FUNCTION__, __LINE__, ##__VA_ARGS__)
@@ -22,6 +19,11 @@
                                                             __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define id2_log_error(_f, ...)	                    ls_osa_print("%s %d: %s: " _f,\
                                                             __FUNCTION__, __LINE__, "ERROR", ##__VA_ARGS__)
+
+#if !defined(CONFIG_ID2_MDU)
+
+#define ID2_KEY_NAME          "id2_key"
+#define ID2_KEY_NAME_LEN       7
 
 enum
 {
@@ -37,6 +39,8 @@ int hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* ou
 int string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len);
 
 void id2_log_hex_dump(const char* name, const uint8_t* data, uint32_t len);
+
+#endif  /* CONFIG_ID2_MDU */
 
 #endif  /* __ID2_PRIV_H__ */
 
