@@ -1,4 +1,5 @@
 include ../../make.rules
+include ../../make.settings
 
 CFLAGS  += -I./inc
 CFLAGS  += -I../../include/osa
@@ -11,11 +12,16 @@ SRCS    += src/id2_client_test.c
 
 OBJS    := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
+ifeq ($(CONFIG_ID2_MDU), y)
+LIBS    := ../../out/libs/libid2.a
+LIBS    += ../../out/libs/libls_osa.a
+else
 LIBS    := ../../out/libs/libid2.a
 LIBS    += ../../out/libs/libkm.a
 LIBS    += ../../out/libs/libicrypt.a
 LIBS    += ../../out/libs/libls_hal.a
 LIBS    += ../../out/libs/libls_osa.a
+endif
 
 OUT     := id2_app
 

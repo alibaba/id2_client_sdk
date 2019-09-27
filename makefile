@@ -1,3 +1,5 @@
+include ./make.settings
+
 OSA_PATH    := modules/osa
 HAL_PATH    := modules/hal
 ID2_PATH    := modules/id2
@@ -8,6 +10,19 @@ LIB_PATH    := out/libs
 BIN_PATH    := out/bin
 
 all:
+ifeq ($(CONFIG_ID2_MDU), y)
+	mkdir -p $(LIB_PATH)
+	mkdir -p $(BIN_PATH)
+	@echo "Building osa..."
+	@make -C $(OSA_PATH)
+	cp -r $(OSA_PATH)/libls_osa.a $(LIB_PATH)
+	@echo "Building id2..."
+	@make -C $(ID2_PATH)
+	cp -r $(ID2_PATH)/libid2.a $(LIB_PATH)
+	@echo "Building id2 app..."
+	@make -C $(APP_PATH)
+	cp $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
+else
 	mkdir -p $(LIB_PATH)
 	mkdir -p $(BIN_PATH)
 	@echo "Building osa..."
@@ -29,6 +44,7 @@ all:
 	@make -C $(APP_PATH)
 	cp $(APP_PATH)/hal_app/hal_app $(BIN_PATH)
 	cp $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
+endif
 
 clean:
 	rm -rf out
