@@ -6,7 +6,6 @@ CFLAGS  += -I../../include/osa
 CFLAGS  += -I../../include/id2
 
 SRCS    := app_entry.c
-SRCS    += src/cJSON.c
 SRCS    += src/id2_client_mesg.c
 SRCS    += src/id2_client_test.c
 
