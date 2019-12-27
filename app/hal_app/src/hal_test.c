@@ -36,6 +36,8 @@ int hal_dump_data(const char *name, uint8_t *data, uint32_t size)
 #endif
 }
 
+#if defined(CONFIG_HAL_CRYPTO)
+
 int hal_crypto_test(void)
 {
     int ret = 0;
@@ -66,3 +68,5 @@ int hal_crypto_test(void)
 
     return ret;
 }
+
+#endif

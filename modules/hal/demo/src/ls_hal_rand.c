@@ -3,7 +3,6 @@
  */
 
 #include "ls_hal.h"
-#include <sys/time.h>
 
 static uint32_t randseed = 12345;
 

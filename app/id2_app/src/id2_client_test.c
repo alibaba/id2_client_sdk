@@ -236,6 +236,45 @@ _out:
     return ret == IROT_SUCCESS ? 0 : -1;
 }
 
+static int id2_client_test_derive_key(void)
+{
+    irot_result_t ret;
+    uint32_t i, key_len;
+    uint8_t key[ID2_DERIV_KEY_LEN] = {0};
+    const char* seed = "appKey";
+
+    ID2_DBG_LOG("====> ID2 Client Test Derive Key Start.\n");
+
+    ret = id2_client_init();
+    if (ret != IROT_SUCCESS) {
+        ID2_DBG_LOG("id2 client init fail, %d\n", ret);
+        return -1;
+    }
+
+    key_len = 16;
+    ret = id2_client_derive_key(seed, key, key_len);
+    if (ret != IROT_SUCCESS) {
+        ID2_DBG_LOG("id2 client derive key fail, %d\n", ret);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    for (i = 0; i < key_len - key_len % 4; i += 4) {
+        ID2_DBG_LOG("key: 0x%02x 0x%02x 0x%02x 0x%02x\n",
+                     key[i+0], key[i+1], key[i+2], key[i+3]);
+    }
+    while(i < key_len) {
+        ID2_DBG_LOG("key: 0x%02x\n", key[i++]);
+    }
+
+_out:
+    id2_client_cleanup();
+
+    ID2_DBG_LOG("====> ID2 Client Test Derive Key End.\n");
+
+    return ret == IROT_SUCCESS ? 0 : -1;
+}
+
 int id2_client_unit_test(void)
 {
     int ret;
@@ -308,6 +347,14 @@ int id2_client_unit_test(void)
         return -1;
     } else {
         ID2_DBG_LOG("=================>ID2 Client Test Get Secret Pass.\n\n");
+    }
+
+    ret = id2_client_test_derive_key();
+    if (ret < 0) {
+        ID2_DBG_LOG("=================>ID2 Client Test Derive Key Fail.\n\n");
+        return -1;
+    } else {
+        ID2_DBG_LOG("=================>ID2 Client Test Derive Key Pass.\n\n");
     }
 
     return 0;

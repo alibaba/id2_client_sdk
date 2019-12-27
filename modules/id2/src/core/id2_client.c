@@ -987,12 +987,17 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
 {
     irot_result_t ret = IROT_SUCCESS;
     uint32_t in_len;
-    uint8_t sign_buf[0x80];
+    uint8_t sign_buf[128];
     uint8_t out_buf[32];
     uint32_t sign_len;
     uint32_t out_len;
 
     id2_log_debug("[id2_client_get_secret enter.]\n");
+
+    if (!is_id2_client_inited()) {
+        id2_log_error("id2 not inited.\n");
+        return IROT_ERROR_GENERIC;
+    }
 
     if (seed == NULL || secret == NULL || secret_len == NULL) {
         id2_log_error("invalid input args.\n");
@@ -1038,6 +1043,87 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
     id2_log_debug("secret: %s\n", secret);
 
     return IROT_SUCCESS;
+}
+
+irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key_len)
+{
+    irot_result_t ret = IROT_SUCCESS;
+    uint8_t sign_buf[128];
+    uint8_t out_buf[32];
+    uint8_t *in_buf = NULL;
+    uint32_t in_len;
+    uint32_t out_len;
+    uint32_t sign_len;
+    uint32_t id_len = ID2_ID_LEN;
+
+    id2_log_debug("[id2_client_derive_key enter.]\n");
+
+    if (!is_id2_client_inited()) {
+        id2_log_error("id2 not inited.\n");
+        return IROT_ERROR_GENERIC;
+    }
+
+    if (seed == NULL || key == NULL || key_len == 0) {
+        id2_log_error("invalid input args.\n");
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    if (key_len > ID2_DERIV_KEY_LEN) {
+        id2_log_error("invalid key length, %d\n", key_len);
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    in_len = strlen(seed);
+    if (in_len == 0) {
+        id2_log_error("seed is null.\n");
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+    if (in_len > ID2_MAX_SEED_LEN) {
+        id2_log_error("seed is excess data.\n");
+        return IROT_ERROR_EXCESS_DATA;
+    }
+
+    id2_log_info("seed: %s\n", seed);
+
+    in_len = ID2_ID_LEN + strlen(seed);
+    in_buf = ls_osa_malloc(in_len);
+    if (in_buf == NULL) {
+        id2_log_error("out of mem, %d\n", in_len);
+        return IROT_ERROR_OUT_OF_MEMORY;
+    }
+
+    ret = id2_client_get_id(in_buf, &id_len);
+    if (ret != IROT_SUCCESS) {
+        id2_log_error("id2 client get id fail, 0x%08x\n", ret);
+        goto _out;
+    }
+
+    memcpy(in_buf + id_len, seed, strlen(seed));
+
+    sign_len = sizeof(sign_buf);
+    ret = _id2_sign(in_buf, in_len, sign_buf, &sign_len);
+    if (ret != IROT_SUCCESS) {
+        id2_log_error("id2 sign fail, %d.\n", ret);
+        goto _out;
+    }
+
+    out_len = sizeof(out_buf);
+    ret = _id2_hash(sign_buf, sign_len, out_buf, &out_len);
+    if (ret != IROT_SUCCESS) {
+        id2_log_error("id2 hash fail, %d.\n", ret);
+        goto _out;
+    }
+
+    id2_log_hex_dump("id2 hash output:", out_buf, out_len);
+
+    memcpy(key, out_buf, key_len);
+
+_out:
+    if (in_buf != NULL) {
+        ls_osa_free(in_buf);
+    }
+
+    return ret;
 }
 
 #if defined(CONFIG_ID2_DEBUG)

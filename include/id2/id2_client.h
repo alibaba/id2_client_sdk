@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #define ID2_ID_LEN                   24
+#define ID2_DERIV_KEY_LEN            32
 #define ID2_DERIV_SECRET_LEN         64
 
 #define ID2_MAX_SERVER_RANDOM_LEN    32
@@ -152,6 +153,15 @@ irot_result_t id2_client_verify_server(
  */
 irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t* secret_len);
 
+/* @brief derive hex format key based on id2.
+ *
+ * @param[in]    seed:       seed string, terminated with '\0', less than ID2_MAX_SEED_LEN.
+ * @param[out]   key:        output buffer, containing hex format key .
+ * @param[inout] key_len:    the length of derived key, no more than ID2_DERIVE_KEY_LEN bytes.
+ *
+ * @return @see id2 error code definitions.
+ */
+irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key_len);
 
 /******************************************************************************
  *                         ID2 Client Debug Functions
