@@ -1,8 +1,10 @@
 include ../../make.rules
 
+OS_NAME := linux
+
 CFLAGS  += -I../../include/osa
 
-SRCS    := src/ls_osa.c
+SRCS    := $(OS_NAME)/src/ls_osa.c
 
 OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 

@@ -1,4 +1,6 @@
 
+include ../../make.rules
+
 CFLAGS  += -I./inc
 CFLAGS  += -I../../include/osa
 CFLAGS  += -I../../include/hal
