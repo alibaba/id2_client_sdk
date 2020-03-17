@@ -3,7 +3,7 @@ include ../../make.settings
 .PHONY: lib
 
 lib:
-ifeq ($(CONFIG_ID2_KM_SE), y)
+ifeq ($(CONFIG_LS_ID2_KM_SE), y)
 	make -C se
 else
 	make -C demo

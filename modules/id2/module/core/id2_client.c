@@ -373,6 +373,17 @@ irot_result_t id2_client_load_otp_data(const uint8_t* otp_data, uint32_t len)
     return IROT_ERROR_NOT_SUPPORTED;
 }
 
+irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key_len)
+{
+    (void)seed;
+    (void)key;
+    (void)key_len;
+
+    id2_log_info("not supported!!\n");
+
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
 irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const char* key_value)
 {
     id2_log_info("not supported!\n");

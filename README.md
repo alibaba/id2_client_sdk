@@ -20,7 +20,7 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 
 <a name="cGT85"></a>
 # 快速开始
-描述在Ubuntu上编译和运行ID²Client SDK。
+描述在Ubuntu上编译和运行ID²Client SDK;其他编译环境，请参考makefile进行编译适配。
 
 <a name="v7uOl"></a>
 ## 编译环境：
@@ -34,10 +34,10 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 >   CFLAGS：编译工具链的编译参数。<br />
 
 - make.settings：
->   CONFIG_ID2_DEBUG：ID²调试信息的开关。<br />
->   CONFIG_ID2_OTP：ID²密钥在使用时动态下发功能的开关。<br />
->   CONFIG_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。<br />
->   CONFIG_ID2_MDU：ID²的模组载体的开关，提供主控ID²SDK, 需使能CONFIG_ID2_MDU宏。<br />
+>   CONFIG_LS_ID2_DEBUG：ID²调试信息的开关。<br />
+>   CONFIG_LS_ID2_OTP：ID²密钥在使用时动态下发功能的开关。<br />
+>   CONFIG_LS_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。<br />
+>   CONFIG_LS_ID2_MDU：ID²的模组载体的开关，提供主控ID²SDK, 需使能CONFIG_ID2_MDU宏。<br />
 
 
 <a name="gG44j"></a>

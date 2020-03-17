@@ -4,6 +4,7 @@ OSA_PATH    := modules/osa
 HAL_PATH    := modules/hal
 ID2_PATH    := modules/id2
 IROT_PATH   := modules/irot
+ITLS_PATH   := modules/itls
 CRYPTO_PATH := modules/crypto
 APP_PATH    := app
 LIB_PATH    := out/libs
@@ -40,10 +41,14 @@ else
 	@echo "Building irot..."
 	@make -C $(IROT_PATH)
 	cp -r $(IROT_PATH)/libkm.a $(LIB_PATH)
+	@echo "Building itls..."
+	@make -C $(ITLS_PATH)
+	cp -r $(ITLS_PATH)/libitls.a $(LIB_PATH)
 	@echo "Building id2 app..."
 	@make -C $(APP_PATH)
 	cp $(APP_PATH)/hal_app/hal_app $(BIN_PATH)
 	cp $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
+	cp $(APP_PATH)/itls_app/itls_app $(BIN_PATH)
 endif
 
 clean:
@@ -52,6 +57,7 @@ clean:
 	@make clean -C $(HAL_PATH)
 	@make clean -C $(ID2_PATH)
 	@make clean -C $(IROT_PATH)
+	@make clean -C $(ITLS_PATH)
 	@make clean -C $(CRYPTO_PATH)
 	@make clean -C $(APP_PATH)
 

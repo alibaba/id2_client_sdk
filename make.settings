@@ -1,7 +1,7 @@
 #Link ID2 Config
 
-CONFIG_ID2_DEBUG   := n
-CONFIG_ID2_OTP     := n
-CONFIG_ID2_KM_SE   := n
-CONFIG_ID2_MDU     := n
+CONFIG_LS_ID2_DEBUG  := n
+CONFIG_LS_ID2_OTP    := n
+CONFIG_LS_ID2_KM_SE  := y
+CONFIG_LS_ID2_MDU    := n
 
