@@ -3,10 +3,11 @@
 <br />
 IoT设备身份认证ID²（Internet Device ID），是一种物联网设备的可信身份标识，具备不可篡改、不可伪造、全球唯一的安全属性，是实现万物互联、服务流转的关键基础设施。<br />
 <br />
-ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID²开放平台。此SDK, 支持两种载体Demo和SE（Secure Element）：<br />
+ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID²开放平台。此SDK, 支持三种载体Demo, SE（Secure Element）和MDU（安全模组）：<br />
 
 - Demo载体：用于ID²设备端功能的演示，正式产品，需切换到安全载体（Soft-KM, SE, TEE）。<br />
-- SE载体：外挂芯片，ID²预烧录在SE芯片上。<br />
+- SE载体：外挂安全芯片，ID²预烧录在SE芯片上。<br />
+- MDU载体：安全模组，ID²密钥和SDK在模组中，主控通过A&T指令调用ID²的功能。
 
 > |—— app：加解密硬件适配（HAL）接口和ID²接口的测试程序。<br />
 > |—— doc：相关文档，如ID²指令规范。<br />
@@ -36,8 +37,8 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 - make.settings：
 >   CONFIG_LS_ID2_DEBUG：ID²调试信息的开关。<br />
 >   CONFIG_LS_ID2_OTP：ID²密钥在使用时动态下发功能的开关。<br />
->   CONFIG_LS_ID2_KM_SE：ID²的SE载体的开关，关闭时，使用Demo载体。<br />
->   CONFIG_LS_ID2_MDU：ID²的模组载体的开关，提供主控ID²SDK, 需使能CONFIG_ID2_MDU宏。<br />
+>   CONFIG_LS_ID2_ROT_TYPE：ID²的安全载体的类型，SE/Demo/MDU。<br />
+>   CONFIG_LS_ID2_KEY_TYPE：ID²的密钥类型，3DES/RSA/AES。<br />
 
 
 <a name="gG44j"></a>
@@ -74,9 +75,7 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 <a name="MUmQg"></a>
 # 其他：
 更多文档，如设备端适配和自主验证，请查阅官网文档：
-https://help.aliyun.com/product/100846.html?spm=a2c4g.11186623.6.540.928e55380nu9ZO
-
-
+https://help.aliyun.com/document_detail/101295.html
 
 
 <br />

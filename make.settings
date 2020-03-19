@@ -1,7 +1,14 @@
 #Link ID2 Config
 
-CONFIG_LS_ID2_DEBUG  := n
-CONFIG_LS_ID2_OTP    := n
-CONFIG_LS_ID2_KM_SE  := y
-CONFIG_LS_ID2_MDU    := n
+# ID2 SDK Debug
+CONFIG_LS_ID2_DEBUG    := N
+
+# ID2 Field Provisioning
+CONFIG_LS_ID2_OTP      := N
+
+# ID2 Root of Trust Type, SE/Demo/MDU
+CONFIG_LS_ID2_ROT_TYPE := Demo
+
+# ID2 Key Type, 3DES/RSA/AES
+CONFIG_LS_ID2_KEY_TYPE := AES
 

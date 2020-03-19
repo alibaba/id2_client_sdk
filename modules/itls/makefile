@@ -7,7 +7,7 @@ CFLAGS  += -I../../include/id2
 CFLAGS  += -I../../include/itls
 CFLAGS  += -I../../include/crypto
 
-ifeq ($(CONFIG_LS_ID2_DEBUG), n)
+ifeq ($(CONFIG_LS_ID2_DEBUG), N)
 CFLAGS  += -DCONFIG_SSL_DEBUG_NO
 endif
 
