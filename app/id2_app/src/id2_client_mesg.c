@@ -13,29 +13,31 @@
 
 #define ID2_JSON_MESSAGE  \
 "{\n\
-    \"reportVersion\":  \"%s\",\n\
-    \"sdkVersion\":  \"%s\",\n\
-    \"date\":  \"%s\",\n\
-    \"testContent\":  [{\n\
-                      \"api\":  \"id2_client_get_id\",\n\
-                      \"args\": {\n\
-                      },\n\
-                      \"result\":  \"%s\"\n\
-             }, {\n\
-                     \"api\":  \"id2_client_get_challenge_auth_code\",\n\
-                     \"args\": {\n\
-                              \"challenge\":  \"%s\",\n\
-                              \"extra\":      \"%s\"\n\
-                     },\n\
-                     \"result\": \"%s\"\n\
-             }, {\n\
-                     \"api\":  \"id2_client_get_timestamp_auth_code\",\n\
-                     \"args\": {\n\
-                              \"timestamp\":  \"%s\",\n\
-                              \"extra\":      \"%s\"\n\
-                     },\n\
-                     \"result\": \"%s\"\n\
-             }]\n\
+    \"reportVersion\": \"%s\",\n\
+    \"sdkVersion\": \"%s\",\n\
+    \"date\": \"%s\",\n\
+    \"testContent\": [\n\
+        {\n\
+            \"api\": \"id2_client_get_id\",\n\
+            \"args\": {\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        }, {\n\
+            \"api\": \"id2_client_get_challenge_auth_code\",\n\
+            \"args\": {\n\
+                \"challenge\": \"%s\",\n\
+                \"extra\":     \"%s\"\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        }, {\n\
+            \"api\": \"id2_client_get_timestamp_auth_code\",\n\
+            \"args\": {\n\
+                \"timestamp\": \"%s\",\n\
+                \"extra\":     \"%s\"\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        }\n\
+    ]\n\
 }"
 
 static uint8_t id2_id[ID2_ID_LEN + 1] = {0};
@@ -97,12 +99,6 @@ int id2_client_generate_authcode(void)
     uint32_t auth_code_len = ID2_AUTH_CODE_BUF_LEN;
 
     ID2_DBG_LOG("====> ID2 Client Generate AuthCode Start.\n");
-
-    ret = id2_client_init();
-    if (ret != IROT_SUCCESS) {
-        ID2_DBG_LOG("id2 client init fail, %d\n", ret);
-        return -1;
-    }
 
     ret = id2_client_get_version(&version);
     if (ret != IROT_SUCCESS) {
@@ -169,8 +165,6 @@ _out:
         ls_osa_free(message);
     }
 
-    id2_client_cleanup();
-
     if (ret < 0) {
         ID2_DBG_LOG("=====>ID2 Client Generate AuthCode Fail.\n\n");
         return -1;
@@ -208,13 +202,6 @@ int id2_client_decrypt_data(char *cipher_data, uint32_t cipher_len)
     ret = _string_to_hex(cipher_data, cipher_len, hex_data, hex_len);
     if (ret < 0) {
         ID2_DBG_LOG("string to hex fail\n");
-        goto _out;
-    }
-
-    ret = id2_client_init();
-    if (ret != IROT_SUCCESS) {
-        ID2_DBG_LOG("id2 client init fail, %d\n", ret);
-        ret = -1;
         goto _out;
     }
 

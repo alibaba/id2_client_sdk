@@ -16,39 +16,39 @@ ifeq ($(CONFIG_ID2_MDU), y)
 	mkdir -p $(BIN_PATH)
 	@echo "Building osa..."
 	@make -C $(OSA_PATH)
-	cp -r $(OSA_PATH)/libls_osa.a $(LIB_PATH)
+	mv $(OSA_PATH)/libls_osa.a $(LIB_PATH)
 	@echo "Building id2..."
 	@make -C $(ID2_PATH)
-	cp -r $(ID2_PATH)/libid2.a $(LIB_PATH)
+	mv $(ID2_PATH)/libid2.a $(LIB_PATH)
 	@echo "Building id2 app..."
 	@make -C $(APP_PATH)
-	cp $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
+	mv $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
 else
 	mkdir -p $(LIB_PATH)
 	mkdir -p $(BIN_PATH)
 	@echo "Building osa..."
 	@make -C $(OSA_PATH)
-	cp -r $(OSA_PATH)/libls_osa.a $(LIB_PATH)
+	mv $(OSA_PATH)/libls_osa.a $(LIB_PATH)
 	@echo "Building hal..."
 	@make -C $(HAL_PATH)
-	cp -r $(HAL_PATH)/libls_hal.a $(LIB_PATH)
+	mv $(HAL_PATH)/libls_hal.a $(LIB_PATH)
 	@echo "Building crypto..."
 	@make -C $(CRYPTO_PATH)
-	cp -r $(CRYPTO_PATH)/libicrypt.a $(LIB_PATH)
+	mv $(CRYPTO_PATH)/libicrypt.a $(LIB_PATH)
 	@echo "Building id2..."
 	@make -C $(ID2_PATH)
-	cp -r $(ID2_PATH)/libid2.a $(LIB_PATH)
+	mv $(ID2_PATH)/libid2.a $(LIB_PATH)
 	@echo "Building irot..."
 	@make -C $(IROT_PATH)
-	cp -r $(IROT_PATH)/libkm.a $(LIB_PATH)
+	mv $(IROT_PATH)/libkm.a $(LIB_PATH)
 	@echo "Building itls..."
 	@make -C $(ITLS_PATH)
-	cp -r $(ITLS_PATH)/libitls.a $(LIB_PATH)
+	mv $(ITLS_PATH)/libitls.a $(LIB_PATH)
 	@echo "Building id2 app..."
 	@make -C $(APP_PATH)
-	cp $(APP_PATH)/hal_app/hal_app $(BIN_PATH)
-	cp $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
-	cp $(APP_PATH)/itls_app/itls_app $(BIN_PATH)
+	mv $(APP_PATH)/hal_app/hal_app $(BIN_PATH)
+	mv $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
+	mv $(APP_PATH)/itls_app/itls_app $(BIN_PATH)
 endif
 
 clean:

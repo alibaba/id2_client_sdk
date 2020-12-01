@@ -5,9 +5,12 @@ CFLAGS  += -I./inc
 CFLAGS  += -I../../include/osa
 CFLAGS  += -I../../include/id2
 
+ifeq ($(CONFIG_LS_ID2_DEBUG), Y)
+CFLAGS  += -DCONFIG_ID2_DEBUG
+endif
+
 SRCS    := app_entry.c
 SRCS    += src/id2_client_mesg.c
-SRCS    += src/id2_client_test.c
 
 OBJS    := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
