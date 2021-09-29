@@ -9,7 +9,7 @@
 
 int hal_rand_test(void)
 {
-    ls_hal_crypt_result ret;
+    int ret;
     uint8_t buf[16] = {0};
 
     ret = ls_hal_get_random(buf, 16);

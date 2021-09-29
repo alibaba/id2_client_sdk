@@ -9,19 +9,20 @@
 #include "ls_hal_rsa.h"
 #include "ls_hal_aes.h"
 #include "ls_hal_hash.h"
+#include "ls_hal_sm4.h"
+#include "ls_hal_ecc.h"
+#include "ls_hal_sm2.h"
 
-/* HAL Crypto Error Code */
-typedef enum _hal_crypto_result {
-    HAL_CRYPT_ERROR = (int)0xFFFF0000,     /* Generic Error */
-    HAL_CRYPT_BAD_PARAMETERS,              /* Bad Parameters */
-    HAL_CRYPT_NOSUPPORT,                   /* Scheme not support */
-    HAL_CRYPT_INVALID_CONTEXT,             /* Invalid context */
-    HAL_CRYPT_INVALID_ARG,                 /* Invalid argument */
-    HAL_CRYPT_LENGTH_ERR,                  /* Invalid Length in arguments */
-    HAL_CRYPT_OUTOFMEM,                    /* Memory alloc NULL */
-    HAL_CRYPT_SHORT_BUFFER,                /* Output buffer is too short to store result */
-    HAL_CRYPT_SUCCESS = 0,                 /* Success */
-} ls_hal_crypt_result;
+#define HAL_CRYPT_ERROR                 0xFFFF0000     /* Generic Error */
+#define HAL_CRYPT_BAD_PARAMETERS        0xFFFF0001     /* Bad Parameters */
+#define HAL_CRYPT_NOSUPPORT             0xFFFF0002     /* Scheme not support */
+#define HAL_CRYPT_INVALID_CONTEXT       0xFFFF0003     /* Invalid context */
+#define HAL_CRYPT_INVALID_ARG           0xFFFF0004     /* Invalid argument */
+#define HAL_CRYPT_LENGTH_ERR            0xFFFF0005     /* Invalid Length in arguments */
+#define HAL_CRYPT_OUTOFMEM              0xFFFF0006     /* Memory alloc NULL */
+#define HAL_CRYPT_SHORT_BUFFER          0xFFFF0007     /* Output buffer is too short to store result */
+#define HAL_CRYPT_INVALID_AUTH          0xFFFF0008     /* Invalid authentication in verify */
+#define HAL_CRYPT_SUCCESS               0              /* Success */
 
 /*
  * Generate random data with len bytes
@@ -29,6 +30,18 @@ typedef enum _hal_crypto_result {
  * buf[in/out]:  buffer to store the results
  * len[in]:      size of buffer
  */
-int ls_hal_get_random(uint8_t* buf, size_t len);
+int ls_hal_get_random(uint8_t *buf, size_t len);
+
+/*
+ * NOTE: if you use hw randon generator in ls_hal_get_random(),
+ *       it is not needed to impl this function.
+ *       (just return HAL_CRYPT_SUCCESS)
+ *
+ * Set seed for random generator
+ *
+ * seed[in]: seed data buffer
+ * seed_len: length of seed data buffer
+ */
+int ls_hal_set_seed(uint8_t *seed, size_t seed_len);
 
 #endif /*__LS_HAL_CRYPT_H__ */

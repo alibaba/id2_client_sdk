@@ -66,6 +66,12 @@ int hal_crypto_test(void)
         return ret;
     }
 
+    HAL_TEST_INF("HAL SM2 Test:\n");
+    ret = hal_sm2_test();
+    if (ret < 0) {
+        return ret;
+    }
+
     return ret;
 }
 

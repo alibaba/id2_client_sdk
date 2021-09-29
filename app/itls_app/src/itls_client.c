@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #include "itls/config.h"
@@ -11,8 +11,8 @@
 #include "ali_crypto.h"
 
 #if defined(ON_DAILY)
-#define SERVER_PORT     1885
-#define SERVER_NAME     "11.158.130.135"
+#define SERVER_PORT     1883
+#define SERVER_NAME     "iot-test-daily.iot-as-mqtt.unify.aliyuncs.com"
 #else
 #define SERVER_PORT     1883
 #define SERVER_NAME     "itls.cn-shanghai.aliyuncs.com"

@@ -10,13 +10,13 @@
 #define ID2_ID      "000FFFFFDB1D8DC78DDCB800"
 #define ID2_KEY     "e4cac8c54ab2d7f07939466b332736990598a452ffe33a97"
 
-#define ID2_LEN                             24
-#define MAX_KEY_LEN                         32
+#define ID2_MIN_LEN       24
+#define MAX_KEY_LEN       32
 
 #define KM_DBG_LOG(_f, _a ...)  \
         ls_osa_print("%s %d: "_f,  __FUNCTION__, __LINE__, ##_a)
 
-static uint8_t s_id2[ID2_LEN + 1]           = {0};
+static uint8_t s_id2[ID2_MIN_LEN + 1]           = {0};
 static uint8_t s_id2_key[MAX_KEY_LEN + 1]   = {0};
 
 static uint32_t s_id2_len = 0;
@@ -110,25 +110,25 @@ _out:
     return ret;
 }
 
-uint32_t km_generate_key(const char* name, const uint32_t name_len, km_key_type key_type, void* arg)
+uint32_t km_generate_key(const char* name, uint32_t name_len, km_gen_param_t* arg)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_export_key(const char* name, const uint32_t name_len,
-                       km_format_t format, uint8_t* export_data, uint32_t* export_data_size)
+uint32_t km_export_key(const char* name, uint32_t name_len,
+                       km_format_t format, uint8_t* export_data, size_t* export_data_size)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_mac(const char *name, const uint32_t name_len, km_sym_param *mac_params,
-        const uint8_t *iv, const uint32_t iv_len, uint8_t *src, size_t src_len,
+uint32_t km_mac(const char *name, uint32_t name_len, km_sym_param *mac_params,
+        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
         uint8_t *mac, uint32_t *mac_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_delete_key(const char* name, const uint32_t name_len)
+uint32_t km_delete_key(const char* name, uint32_t name_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
@@ -141,44 +141,62 @@ uint32_t km_delete_all()
 ////////////////////////////////////////////////////////////////////////////////
 
 uint32_t km_envelope_begin(void **ctx, const char *name, const uint32_t name_len,
-                           uint8_t *iv, uint16_t iv_len,
+                           uint8_t *iv, uint32_t iv_len,
                            uint8_t *protected_key, uint32_t *protected_key_len, km_purpose_type is_enc)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_envelope_update(void* ctx, uint8_t* src, uint32_t src_len, uint8_t* dest, uint32_t* dest_len)
+uint32_t km_envelope_update(void* ctx, uint8_t* src, size_t src_len, uint8_t* dest, size_t* dest_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_envelope_finish(void* ctx, uint8_t* src, uint32_t src_len, uint8_t* dest, uint32_t* dest_len)
+uint32_t km_envelope_finish(void* ctx, uint8_t* src, size_t src_len, uint8_t* dest, size_t* dest_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-uint32_t km_sign(const char* name, const uint32_t name_len, void* sign_params,
-                 const uint8_t* data, const size_t data_len, uint8_t* out, size_t* out_len)
+uint32_t km_msg_sign(const char *name, uint32_t name_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t *signature_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_verify(const char* name, const uint32_t name_len, void* sign_params,
-                   const uint8_t* data, const size_t data_len, const uint8_t* signature, const size_t signature_len)
+uint32_t km_msg_verify(const char *name, uint32_t name_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t signature_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_asym_encrypt(const char* name, const uint32_t name_len, void* enc_params,
-                         const uint8_t* src, const size_t src_len, uint8_t* dest, size_t* dest_len)
+uint32_t km_sign(const char* name, uint32_t name_len, km_sign_param* sign_params,
+                 uint8_t* digest, uint32_t digest_len, uint8_t* signature, uint32_t* signature_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_asym_decrypt(const char* name, const uint32_t name_len, void* enc_params,
-                         const uint8_t* src, const size_t src_len, uint8_t* dest, size_t* dest_len)
+uint32_t km_verify(const char* name, uint32_t name_len, km_sign_param* sign_params,
+                   const uint8_t* digest, uint32_t digest_len, const uint8_t* signature, uint32_t signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_asym_encrypt(const char* name, uint32_t name_len, km_enc_param* enc_params,
+                         uint8_t* src, uint32_t src_len, uint8_t* dest, uint32_t* dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_asym_decrypt(const char* name, uint32_t name_len, km_enc_param* enc_params,
+                         uint8_t* src, uint32_t src_len, uint8_t* dest, uint32_t* dest_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
@@ -190,11 +208,11 @@ uint32_t km_init()
     int ret = 0;
 
     KM_DBG_LOG("Demo KM Build Time: %s %s\n", __DATE__, __TIME__);
-    KM_DBG_LOG("SE, TEE or Soft KM must be selected for formal product!!!\n\n");
+    KM_DBG_LOG("SE, PUF, TEE or Soft KM must be selected for formal product!!!\n\n");
 
     if (s_km_init == 0) {
         s_id2_len = strlen(ID2_ID);
-        if (s_id2_len != ID2_LEN) {
+        if (s_id2_len != ID2_MIN_LEN) {
             return KM_ERR_GENERIC;
         }
 
@@ -218,8 +236,8 @@ void km_cleanup()
     return;
 }
 
-uint32_t km_cipher(const char* name, const uint32_t name_len,
-                   km_sym_param* km_params, const uint8_t* iv, const uint32_t iv_len,
+uint32_t km_cipher(const char* name, uint32_t name_len,
+                   km_sym_param* km_params, uint8_t* iv, uint32_t iv_len,
                    uint8_t* src, size_t src_len, uint8_t* dest, size_t* dest_len)
 {
     int ret = 0;
@@ -254,7 +272,7 @@ uint32_t km_cipher(const char* name, const uint32_t name_len,
 
 uint32_t km_set_id2(uint8_t* id2, uint32_t len)
 {
-    if (len != ID2_LEN) {
+    if (len != ID2_MIN_LEN) {
         return KM_ERR_BAD_PARAMS;
     }
 
@@ -264,8 +282,8 @@ uint32_t km_set_id2(uint8_t* id2, uint32_t len)
      return KM_SUCCESS;
 }
 
-uint32_t km_import_key(const char* name, const uint32_t name_len,
-                       km_format_t format, const km_key_data_t* key_data, const uint32_t key_data_len)
+uint32_t km_import_key(const char* name, uint32_t name_len,
+                       km_format_t format, const km_key_data_t* key_data, uint32_t key_data_len)
 {
     uint8_t key_type;
     uint8_t* pkey;
@@ -273,9 +291,11 @@ uint32_t km_import_key(const char* name, const uint32_t name_len,
 
     key_type = key_data->type;
 
-    if ((key_type != KM_DES3) && (key_type != KM_AES)) {
+    if (key_type != KM_AES) {
+        KM_DBG_LOG("only support AES key type\n");
         return KM_ERR_BAD_PARAMS;
     }
+
     pkey = key_data->sym_key.key;
     key_len = key_data->sym_key.key_bit >> 3;
 
@@ -287,17 +307,17 @@ uint32_t km_import_key(const char* name, const uint32_t name_len,
 
 uint32_t km_get_id2(uint8_t* id2, uint32_t* len)
 {
-    if (*len < ID2_LEN) {
+    if (*len < ID2_MIN_LEN) {
         return KM_ERR_SHORT_BUFFER;
     }
 
     if (s_id2_len == 0) {
         return KM_ERR_ITEM_NOT_FOUND;
     } else {
-        memcpy(id2, s_id2, ID2_LEN);
+        memcpy(id2, s_id2, s_id2_len);
     }
 
-    *len = ID2_LEN;
+    *len = s_id2_len;
 
     return KM_SUCCESS;
 }
@@ -305,10 +325,10 @@ uint32_t km_get_id2(uint8_t* id2, uint32_t* len)
 uint32_t km_get_attestation(uint8_t* id, uint32_t* id_len)
 {
     if (id == NULL) {
-        *id_len = ID2_LEN;
+        *id_len = ID2_MIN_LEN;
         return KM_ERR_SHORT_BUFFER;
     } else {
-        *id_len = ID2_LEN;
+        *id_len = ID2_MIN_LEN;
         memset(id, 'A', *id_len);
 	return KM_SUCCESS;
     }
@@ -324,3 +344,87 @@ uint32_t km_set_id2_state(uint32_t state)
     return KM_ERR_ITEM_NOT_FOUND;
 }
 
+uint32_t km_generate_key_blob(km_gen_param_t *arg, uint8_t *key_blob, uint32_t *key_blob_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_import_key_blob(km_format_t format,
+                            const km_key_data_t *key_data, uint32_t key_data_len,
+                            uint8_t *key_blob, uint32_t *key_blob_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_export_key(uint8_t *blob, uint32_t key_blob_len, km_format_t format,
+                            uint8_t *export_data, size_t *export_data_size)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_mac(uint8_t *key_blob, uint32_t key_blob_len, km_sym_param *mac_params,
+                     uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
+                     uint8_t *mac, uint32_t *mac_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_msg_sign(uint8_t *key_blob, uint32_t key_blob_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t *signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_msg_verify(uint8_t *key_blob, uint32_t key_blob_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_sign(uint8_t *key_blob, uint32_t key_blob_len,
+                      km_sign_param *sign_params,
+                      uint8_t *digest, uint32_t digest_len,
+                      uint8_t *signature, uint32_t *signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_verify(uint8_t *key_blob, uint32_t key_blob_len,
+                        km_sign_param *sign_params,
+                        const uint8_t *digest, uint32_t digest_len,
+                        const uint8_t *signature, uint32_t signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_asym_encrypt(uint8_t *key_blob, uint32_t key_blob_len, km_enc_param *enc_params,
+                              uint8_t *src, uint32_t src_len,
+                              uint8_t *dest, uint32_t *dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_asym_decrypt(uint8_t *key_blob, uint32_t key_blob_len, km_enc_param *enc_params,
+                              uint8_t *src, uint32_t src_len,
+                              uint8_t *dest, uint32_t *dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_blob_cipher(uint8_t *key_blob, uint32_t key_blob_len, km_sym_param *cipher_params,
+                        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
+                        uint8_t *dest, size_t *dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_id2_dkey_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}

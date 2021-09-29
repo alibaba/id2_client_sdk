@@ -108,7 +108,7 @@ enum
 #define CMD_APDU_HEAD_LENGTH                0x05
 #define RSP_APDU_SW_LENGTH                  0x02
 
-#define MAX_CMD_APDU_LENGTH                 (CMD_APDU_HEAD_LENGTH + 255 + 1)
+#define MAX_CMD_APDU_LENGTH                 (CMD_APDU_HEAD_LENGTH + 0x100 + 0x05)
 #define MAX_RSP_APDU_LENGTH                 (0x100 + RSP_APDU_SW_LENGTH)
 
 #define P2_NOT_LAST_BLOCK                   0x00
@@ -403,6 +403,7 @@ _out:
 }
 
 #elif (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_RSA)
+
 static irot_result_t asym_crypto(uint8_t mode, uint8_t cipher_type, uint8_t key_id,
                           const uint8_t* in_data, uint32_t in_len, uint8_t* out_buf, uint32_t* out_len)
 {
@@ -517,6 +518,120 @@ irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
     }
 
     cipher_type = TYPE_ASYMM_RSA_PKCS1;
+    ret = asym_crypto(mode, cipher_type, key_id, in, in_len, out, out_len);
+
+    return ret;
+}
+
+#elif (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM2)
+
+static irot_result_t asym_crypto(uint8_t mode, uint8_t cipher_type, uint8_t key_id,
+                          const uint8_t* in_data, uint32_t in_len, uint8_t* out_buf, uint32_t* out_len)
+{
+    irot_result_t ret;
+    uint8_t cmd_buf[MAX_CMD_APDU_LENGTH];
+    uint8_t rsp_buf[MAX_RSP_APDU_LENGTH];
+    uint32_t rsp_len = sizeof(rsp_buf);
+    uint8_t block_num = 0;
+    uint32_t copy_len = 0;
+    uint32_t offset;
+
+    uint32_t out_buf_len = *out_len;
+    uint32_t out_offset = 0;
+
+    memset(cmd_buf, 0x00, CMD_APDU_HEAD_LENGTH);
+
+    /* send data in loop, may be more than 1 block */
+    while (in_len > 0) {
+        cmd_buf[INDEX_CLA] = CLA_VALUE;
+        cmd_buf[INDEX_INS] = INS_ASYMMTRIC_ENCRYPT;
+
+        /* fill P1,P2 */
+        offset = INDEX_P1;
+        cmd_buf[offset++] = block_num;
+        cmd_buf[offset++] = (in_len <= BLOCK_DATA_LENGTH) ? P2_LAST_BLOCK : P2_NOT_LAST_BLOCK;
+
+        /* skip LC */
+        offset++;
+
+        /* include extra 5 bytes in the first block */
+        if (block_num == 0x00) {
+            cmd_buf[offset++] = mode;
+            cmd_buf[offset++] = cipher_type;
+            cmd_buf[offset++] = key_id;
+
+            /* total length */
+            cmd_buf[offset++] = (uint8_t)((in_len >> 8) & 0xFF);
+            cmd_buf[offset++] = (uint8_t)(in_len & 0xFF);
+        }
+
+        copy_len = (in_len > BLOCK_DATA_LENGTH) ? BLOCK_DATA_LENGTH : in_len;
+        memcpy(&cmd_buf[offset], in_data, copy_len);
+        in_data += copy_len;
+        in_len -= copy_len;
+        offset += copy_len;
+
+        /* the length of LC */
+        cmd_buf[INDEX_LC] = (offset - CMD_APDU_HEAD_LENGTH);
+
+        rsp_len = sizeof(rsp_buf);
+        ret = apdu_transmit_wrap(session_handle, cmd_buf, offset, rsp_buf, &rsp_len);
+        if (ret != IROT_SUCCESS) {
+            goto _out;
+        }
+
+        /* fill output data */
+        if (rsp_len > out_buf_len) {
+            ret = IROT_ERROR_GENERIC;
+            goto _out;
+        } else {
+            memcpy(out_buf + out_offset, rsp_buf, rsp_len);
+            out_offset += rsp_len;
+            out_buf_len -= rsp_len;
+        }
+
+        block_num += 1;
+    }
+
+    *out_len = out_offset;
+
+_out:
+    return ret;
+}
+
+irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
+                                      const uint8_t* in, uint32_t in_len,
+                                      uint8_t* sign, uint32_t* sign_len, asym_sign_verify_t type)
+{
+    irot_result_t ret;
+    uint8_t mode = MODE_ASYMM_SIGN;
+    uint8_t cipher_type;
+
+    if (type == ASYM_TYPE_SM2_SM3) {
+        cipher_type = TYPE_ASYMM_SM2_SM3;
+    } else {
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    ret = asym_crypto(mode, cipher_type, key_id, in, in_len, sign, sign_len);
+
+    return ret;
+}
+
+irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
+                                         const uint8_t* in, uint32_t in_len,
+                                         uint8_t* out, uint32_t* out_len,
+                                         irot_asym_padding_t padding)
+{
+    irot_result_t ret;
+    uint8_t mode = MODE_ASYMM_DECRYPT;
+    uint8_t cipher_type;
+
+    if (padding != ASYM_PADDING_NOPADDING) {
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    cipher_type = TYPE_ASYMM_SM2_SM3;
     ret = asym_crypto(mode, cipher_type, key_id, in, in_len, out, out_len);
 
     return ret;

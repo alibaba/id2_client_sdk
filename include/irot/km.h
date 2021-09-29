@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2017 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #ifndef _KM_H_
@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 //the max key name len that KM can support
-#define MAX_NAME_LEN 16
+#define KM_MAX_NAME_LEN 16
 
 //km error code
 #define KM_SUCCESS               0x00000000
@@ -32,32 +32,35 @@ extern "C" {
 #define KM_ERR_ITEM_NOT_FOUND    0xffff0008
 #define KM_ERR_CORRUPT_KEY       0xffff0009
 #define KM_ERR_OVERFLOW          0xffff000A
+#define KM_ERR_ACCESS_DENIED     0xffff000B
 
 typedef void * km_op_handle_t;
 
+/* for import key only support KM_KEY_FORMAT_RAW now */
+/* for export key only support KM_KEY_FORMAT_ASN1 now */
 typedef enum {
     KM_KEY_FORMAT_X509 = 0, /* for public key export*/
     KM_KEY_FORMAT_PKCS8 = 1, /* for asymmetric key pair import*/
-    KM_KEY_FORMAT_RAW = 2, /* for symmetric key pair import */
+    KM_KEY_FORMAT_RAW = 2, /*  follow km_key_data_t struct */
 } km_format_t;
 
-/* only support rsa now */
 typedef enum {
-    KM_RSA,
+    KM_RSA = 0,
     KM_ECC,
     KM_AES,
     KM_DES,
     KM_DES3,
     KM_HMAC,
-    KM_SM4,
+    KM_SM2,
+    KM_SM4
 } km_key_type;
 
 typedef enum {
-    KM_ECB,
+    KM_ECB = 0,
     KM_CBC,
     KM_CTR,
     KM_XTS, //not support yet
-    KM_GCM,
+    KM_GCM, //not support yet
 } km_block_mode_type;
 
 typedef enum {
@@ -78,20 +81,51 @@ typedef enum {
 } km_digest_type;
 
 typedef enum {
-    KM_PURPOSE_ENCRYPT,
+    KM_ECP_DP_NONE = 0,
+    KM_ECP_DP_SECP192R1,      /*!< 192-bits NIST curve  */
+    KM_ECP_DP_SECP224R1,      /*!< 224-bits NIST curve  */
+    KM_ECP_DP_SECP256R1,      /*!< 256-bits NIST curve  */
+    KM_ECP_DP_SECP384R1,      /*!< 384-bits NIST curve  */
+    KM_ECP_DP_SECP521R1,      /*!< 521-bits NIST curve  */
+    KM_ECP_DP_BP256R1,        /*!< 256-bits Brainpool curve */
+    KM_ECP_DP_BP384R1,        /*!< 384-bits Brainpool curve */
+    KM_ECP_DP_BP512R1,        /*!< 512-bits Brainpool curve */
+    KM_ECP_DP_CURVE25519,     /*!< Curve25519 */
+    KM_ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
+    KM_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
+    KM_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
+    KM_ECP_DP_SMP256R1,       /*!< 256-bits SM2 curve */
+    KM_ECP_DP_SMP256R2,       /*!< 256-bits SM2 test curve */
+} km_ecc_group_id_t;
+
+typedef enum {
+    KM_PURPOSE_ENCRYPT = 0,
     KM_PURPOSE_DECRYPT,
     KM_PURPOSE_SIGN,
     KM_PURPOSE_VERIFY,
 } km_purpose_type;
 
 typedef struct _km_rsa_gen_param {
-    uint32_t key_size;
+    uint32_t key_bit;
     uint64_t exponent;
 } km_rsa_gen_param;
 
+typedef struct _km_ecc_gen_param {
+    km_ecc_group_id_t group_id;
+} km_ecc_gen_param;
+
 typedef struct _km_sym_gen_param {
-    uint32_t key_size;
+    uint32_t key_bit;
 } km_sym_gen_param;
+
+typedef struct _km_gen_param_t {
+    km_key_type key_type;
+    union {
+        km_rsa_gen_param rsa_gen_param; //key_type = KM_RSA
+        km_ecc_gen_param ecc_gen_param; //key_type = KM_SM2 | KM_ECDSA
+        km_sym_gen_param sym_gen_param; //key_type = KM_AES | KM_DES | KM_MAC
+    };
+} km_gen_param_t;
 
 typedef struct _km_sign_param {
     km_padding_type padding_type;
@@ -129,7 +163,7 @@ typedef struct _km_rsa_key_t {
     uint32_t q_len;
     uint32_t dp_len;
     uint32_t dq_len;
-    uint32_t iq_len;
+    uint32_t qp_len;
     uint8_t *n;
     uint8_t *e;
     uint8_t *d;
@@ -137,8 +171,18 @@ typedef struct _km_rsa_key_t {
     uint8_t *q;
     uint8_t *dp;
     uint8_t *dq;
-    uint8_t *iq;
+    uint8_t *qp;
 } km_rsa_key_t;
+
+typedef struct _km_ecc_key_t {
+    km_ecc_group_id_t group_id;
+    uint32_t x_len;
+    uint32_t y_len;
+    uint32_t d_len;
+    uint8_t *x;
+    uint8_t *y;
+    uint8_t *d;
+} km_ecc_key_t;
 
 typedef struct _km_sym_key_t {
     uint32_t key_bit;
@@ -150,6 +194,7 @@ typedef struct _km_key_data_t {
     union {
         km_rsa_key_t rsa_key;
         km_sym_key_t sym_key;
+        km_ecc_key_t ecc_key;
     };
 } km_key_data_t;
 
@@ -164,8 +209,7 @@ typedef struct _km_key_data_t {
  *                 km_sym_gen_param type for sym key
  * return: see km error code
  * */
-uint32_t km_generate_key(const char *name, const uint32_t name_len,
-                     km_key_type key_type, void *arg);
+uint32_t km_generate_key(const char *name, uint32_t name_len, km_gen_param_t *arg);
 
 /*
  * km import key
@@ -176,8 +220,8 @@ uint32_t km_generate_key(const char *name, const uint32_t name_len,
  * param: in: key_data_len: the len of key data
  * return: see km error code
  * */
-uint32_t km_import_key(const char *name, const uint32_t name_len, km_format_t format,
-                   const km_key_data_t *key_data, const uint32_t key_data_len);
+uint32_t km_import_key(const char *name, uint32_t name_len, km_format_t format,
+                   const km_key_data_t *key_data, uint32_t key_data_len);
 
 /*
  * km export key
@@ -190,8 +234,8 @@ uint32_t km_import_key(const char *name, const uint32_t name_len, km_format_t fo
  *                out: the real length of export_data
  * return: see km error code
  * */
-uint32_t km_export_key(const char *name, const uint32_t name_len, km_format_t format,
-                   uint8_t *export_data, uint32_t *export_data_size);
+uint32_t km_export_key(const char *name, uint32_t name_len, km_format_t format,
+                   uint8_t *export_data, size_t *export_data_len);
 
 /*
  * km mac: computer mac
@@ -208,8 +252,8 @@ uint32_t km_export_key(const char *name, const uint32_t name_len, km_format_t fo
  *                out: the real length of mac result
  * return: see km error code
  * */
-uint32_t km_mac(const char *name, const uint32_t name_len, km_sym_param *mac_params,
-        const uint8_t *iv, const uint32_t iv_len, uint8_t *src, size_t src_len,
+uint32_t km_mac(const char *name, uint32_t name_len, km_sym_param *mac_params,
+        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
         uint8_t *mac, uint32_t *mac_len);
 
 /*
@@ -218,14 +262,13 @@ uint32_t km_mac(const char *name, const uint32_t name_len, km_sym_param *mac_par
  * param: in:     name_len: key name len
  * return: see km error code
  * */
-
-uint32_t km_delete_key(const char *name, const uint32_t name_len);
+uint32_t km_delete_key(const char *name, uint32_t name_len);
 
 /*
  * km_delete_all: delete all key stored in km
  * return: see km error code
  * */
-uint32_t km_delete_all();
+uint32_t km_delete_all(void);
 
 /*
  * km_envelope_begin: to generate a digit envelope
@@ -238,16 +281,16 @@ uint32_t km_delete_all();
  * param: in_out:   protected_key_len:
  *                  in: the length of protected_key buffer
  *                  out: the real length of protected_key
- * param: is_enc:   to generate envelope or to parse envelope
+ * param: in:   purpose: to generate envelope or to parse envelope
  *                  KM_PURPOSE_ENCRYPT for parse envelope
  *                  KM_PURPOSE_DECRYPT for generate envelope
  * return: see km error code
  *
  * */
-
-uint32_t km_envelope_begin(void **ctx, const char *name, const uint32_t name_len,
-        uint8_t *iv, uint16_t iv_len,
-        uint8_t *protected_key, uint32_t *protected_key_len, km_purpose_type is_enc);
+uint32_t km_envelope_begin(void **ctx, const char *name,
+        uint32_t name_len,
+        uint8_t *iv, uint32_t iv_len,
+        uint8_t *protected_key, uint32_t *protected_key_len, km_purpose_type purpose);
 
 /*
  * km_envelope_update: to generate a digit envelope
@@ -261,8 +304,8 @@ uint32_t km_envelope_begin(void **ctx, const char *name, const uint32_t name_len
  * return: see km error code
  * */
 
-uint32_t km_envelope_update(void *ctx, uint8_t *src, uint32_t src_len,
-        uint8_t *dest, uint32_t *dest_len);
+uint32_t km_envelope_update(void *ctx, uint8_t *src, size_t src_len,
+        uint8_t *dest, size_t *dest_len);
 
 /*
  * km_envelope_update: to generate a digit
@@ -276,8 +319,8 @@ uint32_t km_envelope_update(void *ctx, uint8_t *src, uint32_t src_len,
  * return: see km error code
  *
  * */
-uint32_t km_envelope_finish(void *ctx, uint8_t *src, uint32_t src_len,
-        uint8_t *dest, uint32_t *dest_len);
+uint32_t km_envelope_finish(void *ctx, uint8_t *src, size_t src_len,
+        uint8_t *dest, size_t *dest_len);
 
 /*
  * to get device id
@@ -292,24 +335,67 @@ uint32_t km_get_attestation(uint8_t *id, uint32_t *id_len);
 #endif /* KM_FEATURES_BASIC */
 
 /*
+ * to get message signature for sm2
+ * param: in:     name: key name
+ * param: in:     name_len: key name len
+ * param: in:     sign_params: the params to sign
+ * param: in:     id: user identifier(can be NULL)
+ *        in:     id_len: length of id buffer
+ *        in:     msg: the message
+ *        in:     msg_len: the length of msg
+ * param: out:    signature: the out buf
+ *                for sm2: r(32 byte) | s(32 byte)
+ * param: in_out: signature_len:
+ *                in: the length of out buffer
+ *                out: the real length of out
+ * return: see km error code
+ * */
+uint32_t km_msg_sign(const char *name, uint32_t name_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t *signature_len);
+
+/*
+ * to get message signature for sm2
+ * param: in:     name: key name
+ * param: in:     name_len: key name len
+ * param: in:     sign_params: the params to sign
+ * param: in:     id: user identifier(can be NULL)
+ *        in:     id_len: length of id buffer
+ *        in:     msg: the message
+ *        in:     msg_len: the length of msg
+ * param: in:     signature: the signature
+ *                for sm2: r(32 byte) | s(32 byte)
+ * param: in:     signature_len: the length of signature
+ * return: see km error code
+ * */
+uint32_t km_msg_verify(const char *name, uint32_t name_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t signature_len);
+
+/*
  * km sign
  * param: in:      name: key name
  * param: in:      name_len: key name len
  * param: in:      sign_params: the params to sign
  *                 km_sign_param: for rsa sign
- * param: in:      data: the data to sign
- * param: in:      data_len: the length for data
- * param: out:     out: the out buf
- * param: in_out:  out_len:
+ * param: in:      digest: the dgest to sign
+ * param: in:      digest_len: the length for digest
+ * param: out:     signature: the out buf
+ *                 for sm2: r(32 byte) | s(32 byte)
+ * param: in_out:  signature_len:
  *                 in: the length of out buffer
  *                 out: the real length of out
  * return: see km error code
  *
  * */
-
-uint32_t km_sign(const char *name, const uint32_t name_len, void *sign_params,
-             const uint8_t *data, const size_t data_len,
-             uint8_t *out, size_t *out_len);
+uint32_t km_sign(const char *name, uint32_t name_len,
+             km_sign_param *sign_params,
+             uint8_t *digest, uint32_t digest_len,
+             uint8_t *signature, uint32_t *signature_len);
 
 /*
  * km verify
@@ -317,16 +403,18 @@ uint32_t km_sign(const char *name, const uint32_t name_len, void *sign_params,
  * param: in:      name_len: key name len
  * param: in:      sign_params: the params to verify
  *                 km_sign_param: for rsa sign
- * param: in:      data: the data to verify
- * param: in:      data_len: the length for data
+ * param: in:      digest: the digest to verify
+ * param: in:      digest_len: the length for digest
  * param: in:      signature: the signature buffer
+ *                 for sm2: r(32 byte) | s(32 byte)
  * param: in:      signature_len: the length of signature buffer
  * return: see km error code
  *
  * */
-uint32_t km_verify(const char *name, const uint32_t name_len, void *sign_params,
-               const uint8_t *data, const size_t data_len,
-               const uint8_t *signature, const size_t signature_len);
+uint32_t km_verify(const char *name, uint32_t name_len,
+               km_sign_param *sign_params,
+               const uint8_t *digest, uint32_t digest_len,
+               const uint8_t *signature, uint32_t signature_len);
 
 /*
  * km asymmetric encrypt
@@ -336,15 +424,16 @@ uint32_t km_verify(const char *name, const uint32_t name_len, void *sign_params,
  *                 km_enc_param: for rsa encrypt
  * param: in:      src: the source data to encrypt
  * param: in:      src_len: the length for src
- * param: in:      dest: the out buffet
+ * param: out:     dest: the out buffer
+ *                       for sm2 C1 | C3 | C2
  * param: in_out:  dest_len:
  *                 in: the length of dest buffer
  *                 out: the real length of dest
  * return: see km error code
  * */
-uint32_t km_asym_encrypt(const char *name, const uint32_t name_len, void *enc_params,
-                const uint8_t *src, const size_t src_len,
-             uint8_t *dest, size_t *dest_len);
+uint32_t km_asym_encrypt(const char *name, uint32_t name_len, km_enc_param *enc_params,
+                uint8_t *src, uint32_t src_len,
+             uint8_t *dest, uint32_t *dest_len);
 /*
  * km asymmetric decrypt
  * param: in:      name: key name
@@ -352,16 +441,17 @@ uint32_t km_asym_encrypt(const char *name, const uint32_t name_len, void *enc_pa
  * param: in:      enc_params: the params to decrypt
  *                 km_enc_param: for rsa encrypt
  * param: in:      src: the source data to encrypt
+ *                      for sm2 C1 | C3 | C2
  * param: in:      src_len: the length for src
- * param: in:      dest: the out buffet
+ * param: out:     dest: the out buffer
  * param: in_out:  dest_len:
  *                 in: the length of dest buffer
  *                 out: the real length of dest
  * return: see km error code
  * */
-uint32_t km_asym_decrypt(const char *name, const uint32_t name_len, void *enc_params,
-                const uint8_t *src, const size_t src_len,
-               uint8_t *dest, size_t *dest_len);
+uint32_t km_asym_decrypt(const char *name, uint32_t name_len, km_enc_param *enc_params,
+                uint8_t *src, uint32_t src_len,
+               uint8_t *dest, uint32_t *dest_len);
 
 /*
  * km symmetric cipher
@@ -372,28 +462,28 @@ uint32_t km_asym_decrypt(const char *name, const uint32_t name_len, void *enc_pa
  * param: in:      iv_len: the length of input iv
  * param: in:      src: the source data to cipher
  * param: in:      src_len: the length for src
- * param: in:      dest: the out buffet
+ * param: out:     dest: the out buffer
  * param: in_out:  dest_len:
  *                 in: the length of dest buffer
  *                 out: the real length of dest
  * return: see km error code
  * */
 
-uint32_t km_cipher(const char *name, const uint32_t name_len, km_sym_param *cipher_params,
-        const uint8_t *iv, const uint32_t iv_len, uint8_t *src, size_t src_len,
+uint32_t km_cipher(const char *name, uint32_t name_len, km_sym_param *cipher_params,
+        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
         uint8_t *dest, size_t *dest_len);
 /*
  * to show km version and new file for no rsvd part platform
  * return: see km error code
  * */
 
-uint32_t km_init();
+uint32_t km_init(void);
 
 /*
  * to clean resource
  * */
 
-void km_cleanup();
+void km_cleanup(void);
 
 /*
  * to get id2 id
@@ -425,6 +515,210 @@ uint32_t km_set_id2_state(uint32_t state);
  * */
 uint32_t km_get_id2_state(uint32_t *state);
 
+
+/*
+ * encrypt the input data by id2 drived key
+ * param: out: the state
+ * return: see km error code
+ * */
+uint32_t km_id2_dkey_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len);
+
+/*********************************************************************/
+/*********************************************************************/
+/*****************for kpm: key is stored in kpm not km ***************/
+/*********************************************************************/
+/*********************************************************************/
+/*
+ * km generate key blob
+ * param: in:     arg: the parameters for generate key
+ *                     km_rsa_gen_param type for rsa key
+ *                     km_sym_gen_param type for sym key
+ * param: out:    key_blob: the encrypted key
+ * param: in_out: key_blob_len:
+ *                in: the length of key_blob buffer
+ *                out: the needed length of key_blob
+ * return: see km error code
+ * */
+uint32_t km_generate_key_blob(km_gen_param_t *arg, uint8_t *key_blob, uint32_t *key_blob_len);
+
+/*
+ * km import key blob
+ * param: in:     format: the format for key data
+ * param: in:     key_data: key data to import
+ * param: in:     key_data_len: the len of key data
+ * param: out:    key_blob: the encrypted key
+ * param: in_out: key_blob_len:
+ *                in: the length of key_blob buffer
+ *                out: the needed length of key_blob
+ * return: see km error code
+ * */
+uint32_t km_import_key_blob(km_format_t format,
+                   const km_key_data_t *key_data, uint32_t key_data_len,
+                   uint8_t *key_blob, uint32_t *key_blob_len);
+/*
+ * km export key
+ * param: in:     key_blob: the encrypted key
+ * param: in:     key_blob_len: the length of key_blob
+ * param: in:     format: the format for export data
+ * param: out:    export_data: the data of exported key
+ *                for rsa and sm2 key : asn1 code
+ * param: in_out: export_data_size:
+ *                in: the length of export_data buffer
+ *                out: the real length of export_data
+ * return: see km error code
+ * */
+uint32_t km_blob_export_key(uint8_t *blob, uint32_t key_blob_len, km_format_t format,
+                   uint8_t *export_data, size_t *export_data_size);
+
+/*
+ * km blob mac: compute mac with key_blob
+ * param: in:     key_blob: the encrypted key which is used to compute mac
+ * param: in:     key_blob_len: the length of key_blob
+ * param: in:     mac_params: the params to computer mac
+ * param: in:     iv: iv for computer mac , if no need can pass NULL
+ * param: in:     iv_len: the length for iv buffer
+ * param: in:     src: the source for computer mac
+ * param: in:     src_len: the lengthof src buffer
+ * param: out:    mac: output mac
+ * param: in_out: mac_len
+ *                in: the length of mac buffer
+ *                out: the real length of mac result
+ * return: see km error code
+ * */
+uint32_t km_blob_mac(uint8_t *key_blob, uint32_t key_blob_len, km_sym_param *mac_params,
+        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
+        uint8_t *mac, uint32_t *mac_len);
+
+/*
+ * to get message signature for sm2
+ * param: in:     key_blob: the encrypted key which is used to sign
+ * param: in:     key_blob_len: the length of key_blob
+ * param: in:     sign_params: the params to sign
+ * param: in:     id: user identifier
+ *        in:     id_len: length of id buffer
+ *        in:     msg: the message
+ *        in:     msg_len: the length of msg
+ * param: out:    signature: the out buf
+ *                for sm2: r(32 byte) | s(32 byte)
+ * param: in_out: signature_len:
+ *                in: the length of out buffer
+ *                out: the real length of out
+ * return: see km error code
+ * */
+uint32_t km_blob_msg_sign(uint8_t *key_blob, uint32_t key_blob_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t *signature_len);
+
+/*
+ * to get message signature for sm2
+ * param: in:     key_blob: the encrypted key which is used to sign
+ * param: in:     key_blob_len: the length of key_blob
+ * param: in:     sign_params: the params to sign
+ * param: in:     id: user identifier
+ *        in:     id_len: length of id buffer
+ *        in:     msg: the message
+ *        in:     msg_len: the length of msg
+ * param: in:     signature: the signature buffer
+ *                for sm2: r(32 byte) | s(32 byte)
+ * param: in:     signature_len: the length of out buffer
+ * return: see km error code
+ * */
+uint32_t km_blob_msg_verify(uint8_t *key_blob, uint32_t key_blob_len,
+        km_sign_param *sign_params,
+        uint8_t *id, size_t id_len,
+        uint8_t *msg, size_t msg_len,
+        uint8_t *signature, uint32_t signature_len);
+
+/*
+ * km blob sign
+ * param: in:      key_blob: the encrypted key which is used to sign
+ * param: in:      key_blob_len: the length of key_blob
+ * param: in:      sign_params: the params to sign
+ * param: in:      digest: the data to sign
+ * param: in:      digest_len: the length for digest
+ * param: out:     signature: the out buf
+ *                 for sm2: r(32 byte) | s(32 byte)
+ * param: in_out:  signature_len:
+ *                 in: the length of out buffer
+ *                 out: the real length of out
+ * return: see km error code
+ *
+ * */
+uint32_t km_blob_sign(uint8_t *key_blob, uint32_t key_blob_len,
+             km_sign_param *sign_params,
+             uint8_t *digest, uint32_t digest_len,
+             uint8_t *signature, uint32_t *signature_len);
+/*
+ * km blob verify
+ * param: in:      key_blob: the encrypted key which is used to verify
+ * param: in:      key_blob_len: the length of key_blob
+ * param: in:      sign_params: the params to verify
+ * param: in:      digest: the data to verify
+ * param: in:      digest_len: the length for digest
+ * param: in:      signature: the signature buffer
+ *                 for sm2: r(32 byte) | s(32 byte)
+ * param: in:      signature_len: the length of signature buffer
+ * return: see km error code
+ *
+ * */
+uint32_t km_blob_verify(uint8_t *key_blob, uint32_t key_blob_len,
+               km_sign_param *sign_params,
+               const uint8_t *digest, uint32_t digest_len,
+               const uint8_t *signature, uint32_t signature_len);
+/*
+ * km blob asymmetric encrypt
+ * param: in:      key_blob: the encrypted key which is used to asym encrypt
+ * param: in:      key_blob_len: the length of key_blob
+ * param: in:      enc_params: the params to encrypt
+ * param: in:      src: the source data to encrypt
+ * param: in:      src_len: the length for src
+ * param: out:     dest: the out buffer
+ *                       for sm2 C1 | C3 | C2
+ * param: in_out:  dest_len:
+ *                 in: the length of dest buffer
+ *                 out: the real length of dest
+ * return: see km error code
+ * */
+uint32_t km_blob_asym_encrypt(uint8_t *key_blob, uint32_t key_blob_len, km_enc_param *enc_params,
+                uint8_t *src, uint32_t src_len,
+             uint8_t *dest, uint32_t *dest_len);
+/*
+ * km asymmetric decrypt
+ * param: in:      key_blob: the encrypted key which is used to asym decrypt
+ * param: in:      key_blob_len: the length of key_blob
+ * param: in:      enc_params: the params to decrypt
+ * param: in:      src: the source data to decrypt
+ *                      for sm2 C1 | C3 | C2
+ * param: in:      src_len: the length for src
+ * param: out:     dest: the out buffer
+ * param: in_out:  dest_len:
+ *                 in: the length of dest buffer
+ *                 out: the real length of dest
+ * return: see km error code
+ * */
+uint32_t km_blob_asym_decrypt(uint8_t *key_blob, uint32_t key_blob_len, km_enc_param *enc_params,
+                uint8_t *src, uint32_t src_len,
+               uint8_t *dest, uint32_t *dest_len);
+/*
+ * km blob symmetric cipher
+ * param: in:      key_blob: the encrypted key which is used to asym decrypt
+ * param: in:      key_blob_len: the length of key_blob
+ * param: in:      cipher_params: the params to symmetric cipher
+ * param: in:      iv: the iv for symmetric cipher
+ * param: in:      iv_len: the length of input iv
+ * param: in:      src: the source data to cipher
+ * param: in:      src_len: the length for src
+ * param: out:     dest: the out buffer
+ * param: in_out:  dest_len:
+ *                 in: the length of dest buffer
+ *                 out: the real length of dest
+ * return: see km error code
+ * */
+uint32_t km_blob_cipher(uint8_t *key_blob, uint32_t key_blob_len, km_sym_param *cipher_params,
+        uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
+        uint8_t *dest, size_t *dest_len);
 
 #ifdef __cplusplus
 }

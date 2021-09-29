@@ -5,15 +5,23 @@ CFLAGS  += -I../../include/hal
 CFLAGS  += -I./demo/inc
 
 SRCS    := demo/src/ls_hal_aes.c
+SRCS    += demo/src/ls_hal_sm4.c
 SRCS    += demo/src/ls_hal_hash.c
 SRCS    += demo/src/ls_hal_rand.c
 SRCS    += demo/src/ls_hal_rsa.c
+SRCS    += demo/src/ls_hal_sm2.c
+SRCS    += demo/src/ls_hal_ecc.c
 SRCS    += demo/src/aes.c
+SRCS    += demo/src/sm4.c
 SRCS    += demo/src/md5.c
 SRCS    += demo/src/sha1.c
 SRCS    += demo/src/sha256.c
 SRCS    += demo/src/bignum.c
 SRCS    += demo/src/rsa.c
+SRCS    += demo/src/sm2.c
+SRCS    += demo/src/sm3.c
+SRCS    += demo/src/ecp.c
+SRCS    += demo/src/ecp_curves.c
 
 OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 

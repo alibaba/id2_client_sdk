@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #ifndef _LS_HAL_H_

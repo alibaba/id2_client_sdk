@@ -40,9 +40,9 @@
     ]\n\
 }"
 
-static uint8_t id2_id[ID2_ID_LEN + 1] = {0};
-static uint8_t auth_code_challenge[ID2_AUTH_CODE_BUF_LEN] = {0};
-static uint8_t auth_code_timestamp[ID2_AUTH_CODE_BUF_LEN] = {0};
+static uint8_t id2_id[ID2_ID_MAX_LEN + 1] = {0};
+static uint8_t auth_code_challenge[ID2_MAX_AUTH_CODE_LEN] = {0};
+static uint8_t auth_code_timestamp[ID2_MAX_AUTH_CODE_LEN] = {0};
 
 static int _char_to_hex(char c)
 {
@@ -95,8 +95,8 @@ int id2_client_generate_authcode(void)
     uint32_t version = 0;
     uint32_t message_len = 0;
     uint32_t ver_max, ver_mid, ver_min;
-    uint32_t id2_len = ID2_ID_LEN;
-    uint32_t auth_code_len = ID2_AUTH_CODE_BUF_LEN;
+    uint32_t id2_len = ID2_ID_MAX_LEN;
+    uint32_t auth_code_len = ID2_MAX_AUTH_CODE_LEN;
 
     ID2_DBG_LOG("====> ID2 Client Generate AuthCode Start.\n");
 
@@ -131,7 +131,7 @@ int id2_client_generate_authcode(void)
     }
     message_len += auth_code_len;
 
-    auth_code_len = ID2_AUTH_CODE_BUF_LEN;
+    auth_code_len = ID2_MAX_AUTH_CODE_LEN;
     ret = id2_client_get_timestamp_auth_code(ID2_TIMESTAMP,
               (uint8_t *)ID2_EXTRA, strlen(ID2_EXTRA), auth_code_timestamp, &auth_code_len);
     if (ret != IROT_SUCCESS) {
@@ -175,6 +175,38 @@ _out:
     return ret;
 }
 
+int id2_client_verify_authcode(char *auth_code, uint32_t auth_code_len)
+{
+    int ret = 0;
+
+    ID2_DBG_LOG("====> ID2 Client Verify Server AuthCode Start.\n");
+
+    ret = id2_client_init();
+    if (ret != IROT_SUCCESS) {
+        ID2_DBG_LOG("id2 client init fail, %d\n", ret);
+        return -1;
+    }
+
+    ret = id2_client_verify_server((uint8_t *)auth_code, auth_code_len,
+                     (uint8_t *)ID2_CHALLENGE, strlen(ID2_CHALLENGE),
+                     (uint8_t *)ID2_EXTRA, strlen(ID2_EXTRA));
+    if (ret != IROT_SUCCESS) {
+        ID2_DBG_LOG("id2 verify server auth code fail, %d\n", ret);
+        ret = -1;
+        goto _out;
+    }
+
+_out:
+    if (ret < 0) {
+        ID2_DBG_LOG("=====>ID2 Client Verify Server AuthCode Fail.\n\n");
+        return -1;
+    } else {
+        ID2_DBG_LOG("=====>ID2 Client Verify Server  AuthCode End.\n\n");
+    }
+
+    return ret;
+}
+
 int id2_client_decrypt_data(char *cipher_data, uint32_t cipher_len)
 {
     int ret = 0;
@@ -182,12 +214,12 @@ int id2_client_decrypt_data(char *cipher_data, uint32_t cipher_len)
     uint32_t out_len = 0;
     uint32_t id2_len = 0;
     uint8_t *hex_data = NULL;
-    uint8_t out_data[ID2_ID_LEN + 1] = {0};
-    uint8_t id2_data[ID2_ID_LEN + 1] = {0};
+    uint8_t out_data[ID2_ID_MAX_LEN + 1] = {0};
+    uint8_t id2_data[ID2_ID_MAX_LEN + 1] = {0};
 
     ID2_DBG_LOG("====> ID2 Client Test Decrypt Start.\n");
 
-    if (cipher_data == NULL || cipher_len < ID2_ID_LEN) {
+    if (cipher_data == NULL || cipher_len < ID2_ID_MAX_LEN) {
         ID2_DBG_LOG("invalid input args\n");
         return -1;
     }
@@ -205,7 +237,7 @@ int id2_client_decrypt_data(char *cipher_data, uint32_t cipher_len)
         goto _out;
     }
 
-    id2_len = ID2_ID_LEN;
+    id2_len = ID2_ID_MAX_LEN;
     ret = id2_client_get_id(id2_data, &id2_len);
     if (ret != IROT_SUCCESS) {
         ID2_DBG_LOG("id2 get id fail, %d\n", ret);
@@ -213,15 +245,18 @@ int id2_client_decrypt_data(char *cipher_data, uint32_t cipher_len)
         goto _out;
     }
 
-    out_len = ID2_ID_LEN;
+    out_len = ID2_ID_MAX_LEN;
     ret = id2_client_decrypt(hex_data, hex_len, out_data, &out_len);
-    if (ret != IROT_SUCCESS || out_len != ID2_ID_LEN) {
+    if (ret != IROT_SUCCESS) {
         ID2_DBG_LOG("id2 client decrypt fail, %d %d\n", ret, out_len);
         ret = -1;
         goto _out;
     }
 
-    if (memcmp(id2_data, out_data, ID2_ID_LEN)) {
+    ID2_DBG_LOG("out_data: %s\n", out_data);
+
+    if (out_len != id2_len ||
+        memcmp(id2_data, out_data, id2_len)) {
         ID2_DBG_LOG("plaintext data is error\n");
         ret = -1;
         goto _out;

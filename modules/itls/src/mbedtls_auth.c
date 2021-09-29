@@ -160,11 +160,11 @@ int mbedtls_write_key_id_ext(
             return -1;
         }
 
-        if (key_id_len < ID2_ID_LEN) {
+        if (key_id_len < ID2_ID_MAX_LEN) {
             SSL_DBG_LOG("key id short buffer, %d\n", (int)key_id_len);
             return -1;
         } else {
-            key_id_len = ID2_ID_LEN;
+            key_id_len = ID2_ID_MAX_LEN;
         }
 
         ssl->handshake->key_otp = 0;

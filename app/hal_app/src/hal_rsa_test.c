@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017  Alibaba Group Holding Limited.
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited.
  */
 
 #include "ls_hal.h"
@@ -44,36 +44,7 @@ static int blinding(void *rng_state, unsigned char *output, size_t len)
     return 0;
 }
 
-static int _hal_init_key(void *key_pair, void *pub_key)
-{
-    uint32_t          n_size   = RSA_KEY_LEN;
-    hal_rsa_keypair_t *keypair = (hal_rsa_keypair_t *) key_pair;
-    hal_rsa_pubkey_t  *pubkey  = (hal_rsa_pubkey_t *)  pub_key;
-
-    keypair->key_bytes = n_size;
-    memset(keypair->n, 0, n_size);
-    memcpy(keypair->n, RSA_N, n_size);
-    memset(keypair->d, 0, n_size);
-    memcpy(keypair->d, RSA_D, n_size);
-    memset(keypair->p, 0, n_size>>1);
-    memset(keypair->q, 0, n_size>>1);
-    memset(keypair->dp, 0, n_size>>1);
-    memset(keypair->dq, 0, n_size>>1);
-    memset(keypair->qp, 0, n_size>>1);
-
-    pubkey->key_bytes = n_size;
-    memset(pubkey->n, 0, n_size);
-    memcpy(pubkey->n, RSA_N, n_size);
-    memset(pubkey->e, 0, n_size);
-    pubkey->e[n_size-1] = 1;
-    pubkey->e[n_size-2] = 0;
-    pubkey->e[n_size-3] = 1;
-    return 0;
-
-}
-
-static int _hal_encrypt_decrypt(
-    void *pubkey, void *keypair)
+static int _hal_encrypt_decrypt(void)
 {
     int ret = 0;
     uint8_t src_data[RSA_KEY_LEN];
@@ -83,11 +54,6 @@ static int _hal_encrypt_decrypt(
     void    *context = NULL;
     void    *ctx_keypair = NULL;
     size_t  ctx_size;
-
-    if (pubkey == NULL || keypair == NULL) {
-        HAL_TEST_ERR("rsa: invalid input args!\n");
-        return -1;
-    }
 
     ctx_size = ls_hal_rsa_get_ctx_size();
 
@@ -163,26 +129,7 @@ cleanup:
 int hal_rsa_test(void)
 {
     int            ret;
-    void *pubkey = NULL;
-    void *keypair = NULL;
-
-    keypair = ls_osa_malloc(sizeof(hal_rsa_keypair_t));
-    if (keypair == NULL) {
-        HAL_TEST_ERR("malloc failed\n");
-        return -1;
-    }
-    pubkey  = ls_osa_malloc(sizeof(hal_rsa_pubkey_t));
-    if (pubkey == NULL) {
-        HAL_TEST_ERR("malloc failed\n");
-        return -1;
-    }
-
-    ret = _hal_init_key(keypair, pubkey);
-    if (ret < 0) {
-        goto _out;
-    }
-
-    ret = _hal_encrypt_decrypt(pubkey, keypair);
+    ret = _hal_encrypt_decrypt();
     if (ret < 0) {
         goto _out;
     }
@@ -194,12 +141,6 @@ _out:
         HAL_TEST_INF("=============================> HAL RSA Test Fail.\n\n");
     }
 
-    if (pubkey) {
-        ls_osa_free(pubkey);
-    }
-    if (keypair) {
-        ls_osa_free(keypair);
-    }
     return ret;
 }
 

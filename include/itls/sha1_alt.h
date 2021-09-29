@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2018 The YunOS IoT Project. All rights reserved.
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited.
  */
 
 #ifndef MBEDTLS_SHA1_ALT_H

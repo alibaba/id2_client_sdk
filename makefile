@@ -11,19 +11,6 @@ LIB_PATH    := out/libs
 BIN_PATH    := out/bin
 
 all:
-ifeq ($(CONFIG_ID2_MDU), y)
-	mkdir -p $(LIB_PATH)
-	mkdir -p $(BIN_PATH)
-	@echo "Building osa..."
-	@make -C $(OSA_PATH)
-	mv $(OSA_PATH)/libls_osa.a $(LIB_PATH)
-	@echo "Building id2..."
-	@make -C $(ID2_PATH)
-	mv $(ID2_PATH)/libid2.a $(LIB_PATH)
-	@echo "Building id2 app..."
-	@make -C $(APP_PATH)
-	mv $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
-else
 	mkdir -p $(LIB_PATH)
 	mkdir -p $(BIN_PATH)
 	@echo "Building osa..."
@@ -37,7 +24,11 @@ else
 	mv $(CRYPTO_PATH)/libicrypt.a $(LIB_PATH)
 	@echo "Building id2..."
 	@make -C $(ID2_PATH)
+ifeq ($(CONFIG_LS_ID2_ROT_TYPE), MDU)
+	mv $(ID2_PATH)/libid2_stub.a $(LIB_PATH)
+else
 	mv $(ID2_PATH)/libid2.a $(LIB_PATH)
+endif
 	@echo "Building irot..."
 	@make -C $(IROT_PATH)
 	mv $(IROT_PATH)/libkm.a $(LIB_PATH)
@@ -49,7 +40,6 @@ else
 	mv $(APP_PATH)/hal_app/hal_app $(BIN_PATH)
 	mv $(APP_PATH)/id2_app/id2_app $(BIN_PATH)
 	mv $(APP_PATH)/itls_app/itls_app $(BIN_PATH)
-endif
 
 clean:
 	rm -rf out

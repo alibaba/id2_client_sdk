@@ -45,7 +45,7 @@ void impl_sha1_free(impl_sha1_context *ctx);
  * \param src      The context to be cloned
  */
 void impl_sha1_clone(impl_sha1_context *dst,
-                   const impl_sha1_context *src);
+                     const impl_sha1_context *src);
 
 /**
  * \brief          SHA-1 context setup

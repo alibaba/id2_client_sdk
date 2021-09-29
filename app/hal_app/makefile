@@ -7,9 +7,12 @@ CFLAGS  += -I../../include/hal
 
 CFLAGS  += -DCONFIG_HAL_CRYPTO
 
+LDFLAGS += -pie
+
 SRCS    := app_entry.c
 SRCS    += src/hal_test.c
 SRCS    += src/hal_aes_test.c
+SRCS    += src/hal_sm2_test.c
 SRCS    += src/hal_rsa_test.c
 SRCS    += src/hal_hash_test.c
 SRCS    += src/hal_rand_test.c

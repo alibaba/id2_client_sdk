@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2017 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #ifndef __ID2_CLIENT_H__
@@ -12,15 +12,19 @@
 extern "C" {
 #endif
 
-#define ID2_ID_LEN                   24
+#define ID2_ID_MIN_LEN               24
+#define ID2_ID_MAX_LEN               48
+
 #define ID2_DERIV_KEY_LEN            32
 #define ID2_DERIV_SECRET_LEN         64
 
 #define ID2_MAX_SERVER_RANDOM_LEN    32
-#define ID2_MAX_DEVICE_RANDOM_LEN    16
+#define ID2_MAX_DEVICE_RANDOM_LEN    128
 #define ID2_MAX_SEED_LEN             128
 #define ID2_MAX_EXTRA_LEN            512
-#define ID2_MAX_CRYPT_LEN            4096
+#define ID2_MAX_AUTH_CODE_LEN        512
+#define ID2_MAX_CRYPT_LEN            1024
+#define ID2_MAX_OTP_DATA_LEN         1024
 
 /* id2 error code definitions */
 #define IROT_SUCCESS                 0  /* The operation was successful */
@@ -63,7 +67,7 @@ irot_result_t id2_client_get_version(uint32_t* version);
  * @brief get ID2 ID String.
  *
  * @param[out]    id:   the ID2 buffer, containing ID2 ID string.
- * @param[inout]  len:  in -  the ID2 buffer size, which must >= ID2_ID_LEN;
+ * @param[inout]  len:  in -  the ID2 buffer size, which must >= ID2_ID_MAX_LEN;
  *                      out - the actual length.
  *
  * @return @see id2 error code definitions.
@@ -74,10 +78,10 @@ irot_result_t id2_client_get_id(uint8_t* id, uint32_t* len);
  * @brief get the authentication code with the challenge mode.
  *
  * @param[in]    server_random:  random string from ID2 server, terminated with '\0'.
- * @param[in]    extra:          extra string, optional, no more than 512 bytes.
+ * @param[in]    extra:          extra string, optional, no more than ID2_MAX_EXTRA_LEN.
  * @param[in]    extra_len:      the length of extra string.
  * @param[out]   auth_code:      the output buffer, containing auth code string.
- * @param[inout] auth_code_len:  in - the buffer size, more than 256 bytes.
+ * @param[inout] auth_code_len:  in - the buffer size, no less than ID2_MAX_AUTH_CODE_LEN.
  *                               out - the actual length.
  *
  * @return @see id2 error code definitions.
@@ -90,10 +94,10 @@ irot_result_t id2_client_get_challenge_auth_code(const char* server_random,
  * @brief get the authentication code with timestamp mode.
  *
  * @param[in]    timestamp:      the number string of milliseconds since the Epoch, terminated with '\0'.
- * @param[in]    extra:          extra string, optional, no more than 512 bytes.
+ * @param[in]    extra:          extra string, optional, no more than ID2_MAX_EXTRA_LEN..
  * @param[in]    extra_len:      the length of extra string.
  * @param[out]   auth_code:      the output buffer, containing auth code string.
- * @param[inout] auth_code_len:  in - the buffer size, more than 256 bytes.
+ * @param[inout] auth_code_len:  in - the buffer size, no less than ID2_MAX_AUTH_CODE_LEN.
  *                               out - the actual length.
  *
  * @return @see id2 error code definitions.
@@ -103,12 +107,27 @@ irot_result_t id2_client_get_timestamp_auth_code(const char* timestamp,
                                                  uint8_t* auth_code, uint32_t* auth_code_len);
 
 /**
+* @brief encrypt the cipher data with ID2 key.
+*
+* @param[in]    in:       input hexadecimal data.
+* @param[in]    in_len:   lenth of the input data, no more than ID2_MAX_CRYPT_LEN bytes.
+* @param[out]   out:      output buffer, containing decrypted hexadecimal data.
+* @param[inout] out_len:  in - the buffer size, no less than in_len + ID2_MAX_CRYPT_ADD_LEN bytes.
+*                         out - the actual length.
+*
+* @return @see id2 error code definitions.
+*/
+irot_result_t id2_client_encrypt(const uint8_t *in,
+                  uint32_t in_len, uint8_t *out, uint32_t *out_len);
+
+/**
  * @brief decrypt the cipher data with ID2 key.
  *
  * @param[in]    in:       input hexadecimal data.
- * @param[in]    in_len:   lenth of the input data, less than ID2_MAX_CRYPT_LEN bytes.
+ * @param[in]    in_len:   lenth of the input data, no more than ID2_MAX_CRYPT_LEN bytes.
  * @param[out]   out:      output buffer, containing decrypted hexadecimal data.
- * @param[inout] out_len:  in - the buffer size; out - the actual length.
+ * @param[inout] out_len:  in - the buffer size, no less than in_len bytes;
+ *                         out - the actual length.
  *
  * @return @see id2 error code definitions.
  */
@@ -116,10 +135,11 @@ irot_result_t id2_client_decrypt(const uint8_t* in,
                   uint32_t in_len, uint8_t* out, uint32_t* out_len);
 
 /**
- * @brief get the device challenge, less than ID2_MAX_DEVICE_RANDOM_LEN bytes.
+ * @brief get the device challenge.
  *
  * @param[out]   random:      output buffer, containing device challenge string.
- * @param[inout] random_len:  in - the output buffer size; out - the actual length.
+ * @param[inout] random_len:  in - the random buffer size;
+*                             out - the actual length, no more than ID2_MAX_DEVICE_RANDOM_LEN.
  *
  * @return @see id2 error code definitions.
  */
@@ -129,11 +149,11 @@ irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_
  * @brief   verify the auth code from server.
  *
  * @param[in] auth_code:             auth code string of server.
- * @param[in] auth_code_len:         the length auth code.
+ * @param[in] auth_code_len:         the length auth code, no more than ID2_MAX_AUTH_CODE_LEN.
  * @param[in] device_random:         device challenge string.
- * @param[in] device_random_len:     the length of device challenge.
- * @param[in] server_extra:          extra string of server.
- * @param[in] server_extra_len:      the length of extra.
+ * @param[in] device_random_len:     the length of device challenge, no more than ID2_MAX_DEVICE_RANDOM_LEN.
+ * @param[in] server_extra:          extra string of server, optional.
+ * @param[in] server_extra_len:      the length of extra, no more than ID2_MAX_EXTRA_LEN.
  *
  * @return @see id2 error code definitions.
  */
@@ -144,10 +164,10 @@ irot_result_t id2_client_verify_server(
 
 /* @brief derive device secret based on id2.
  *
- * @param[in]    seed:       seed string, terminated with '\0', less than ID2_MAX_SEED_LEN.
+ * @param[in]    seed:       seed string, terminated with '\0', no more than ID2_MAX_SEED_LEN bytes.
  * @param[out]   secret:     output buffer, containing secret string.
- * @param[inout] secret_len: in - the length of secret buffer, should be more than ID2_DERIV_SECRET_LEN bytes.
- *                           out - the actual secret length.
+ * @param[inout] secret_len: in - the length of secret buffer, should >= ID2_DERIV_SECRET_LEN bytes.
+ *                           out - ID2_DERIV_SECRET_LEN bytes.
  *
  * @return @see id2 error code definitions.
  */
@@ -155,9 +175,9 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
 
 /* @brief derive hex format key based on id2.
  *
- * @param[in]    seed:       seed string, terminated with '\0', less than ID2_MAX_SEED_LEN.
- * @param[out]   key:        output buffer, containing hex format key .
- * @param[inout] key_len:    the length of derived key, no more than ID2_DERIVE_KEY_LEN bytes.
+ * @param[in]    seed:       seed string, terminated with '\0', no more than ID2_MAX_SEED_LEN bytes.
+ * @param[out]   key:        output buffer, containing hex format key.
+ * @param[in]    key_len:    specify the length of derived key, should <= ID2_DERIV_KEY_LEN bytes.
  *
  * @return @see id2 error code definitions.
  */
@@ -201,7 +221,8 @@ irot_result_t id2_client_get_prov_stat(bool *is_prov);
  * @param[in]    token:          the provisioning token buffer.
  * @param[in]    token_len:      the length of provisioning token.
  * @param[out]   auth_code:      output buffer, containing auth code string.
- * @param[inout] auth_code_len:  in - the output buffer size; out - the actual length.
+ * @param[inout] auth_code_len:  in - the output buffer size, no less than ID2_MAX_AUTH_CODE_LEN;
+ *                               out - the actual length.
  *
  * @return @see id2 error code definitions.
  */
@@ -211,7 +232,7 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
  * @brief load the id2 otp data into device.
  *
  * @param[in]  otp_data:     the otp hexadecimal data, which is got from id2 server.
- * @param[in]  otp_data_len: the length of otp data.
+ * @param[in]  otp_data_len: the length of otp data, no more than ID2_MAX_OTP_DATA_LEN.
  *
  * @return @see id2 error code definitions.
  */

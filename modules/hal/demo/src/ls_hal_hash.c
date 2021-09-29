@@ -6,6 +6,7 @@
 #include "md5.h"
 #include "sha1.h"
 #include "sha256.h"
+#include "sm3.h"
 
 int ls_hal_md5_get_size(void)
 {
@@ -176,6 +177,60 @@ int ls_hal_sha256_finish(void *ctx, uint8_t digest[32])
     impl_ctx = (impl_sha256_ctx_t *)ctx;
 
     impl_sha256_finish(&impl_ctx->context, digest);
+
+    return HAL_CRYPT_SUCCESS;
+}
+
+int ls_hal_sm3_get_size(void)
+{
+    return sizeof(impl_sm3_ctx_t);
+}
+
+int ls_hal_sm3_init(void *ctx)
+{
+    impl_sm3_ctx_t *impl_ctx;
+
+    if (ctx == NULL) {
+        LS_HAL_LOG("invalid ctx\n");
+        return HAL_CRYPT_INVALID_CONTEXT;
+    }
+
+    impl_ctx = (impl_sm3_ctx_t *)ctx;
+
+    impl_sm3_init(&impl_ctx->context);
+    impl_sm3_starts(&impl_ctx->context);
+
+    return HAL_CRYPT_SUCCESS;
+}
+
+int ls_hal_sm3_update(void *ctx, const uint8_t *src, size_t size)
+{
+    impl_sm3_ctx_t *impl_ctx;
+
+    if (ctx == NULL) {
+        LS_HAL_LOG("invalid ctx\n");
+        return HAL_CRYPT_INVALID_CONTEXT;
+    }
+
+    impl_ctx = (impl_sm3_ctx_t *)ctx;
+
+    impl_sm3_update(&impl_ctx->context, src, size);
+
+    return HAL_CRYPT_SUCCESS;
+}
+
+int ls_hal_sm3_finish(void *ctx, uint8_t digest[32])
+{
+    impl_sm3_ctx_t *impl_ctx;
+
+    if (ctx == NULL) {
+        LS_HAL_LOG("invalid ctx\n");
+        return HAL_CRYPT_INVALID_CONTEXT;
+    }
+
+    impl_ctx = (impl_sm3_ctx_t *)ctx;
+
+    impl_sm3_finish(&impl_ctx->context, digest);
 
     return HAL_CRYPT_SUCCESS;
 }

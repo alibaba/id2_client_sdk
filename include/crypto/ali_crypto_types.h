@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017  Alibaba Group Holding Limited.
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited.
  */
 
 #ifndef _ALI_CRYPTO_TYPES_H_
@@ -63,14 +63,8 @@ typedef enum _ali_crypto_result {
 #define ALI_CRYPTO_RSA_CRYPT            2
 #define ALI_CRYPTO_RSA_SALT_LEN_ANY    -1
 
-#define ALI_CRYPTO_ASN1_OCTET_STRING            0x04
-#define ALI_CRYPTO_ASN1_NULL                    0x05
-#define ALI_CRYPTO_ASN1_OID                     0x06
-#define ALI_CRYPTO_ASN1_SEQUENCE                0x10
-#define ALI_CRYPTO_ASN1_CONSTRUCTED             0x20
-
 /**
- * AliCrypto API AES defines 
+ * API AES defines
  **/
 typedef enum _sym_padding_t {
     SYM_NOPAD       = 0,
@@ -95,10 +89,25 @@ typedef struct _api_aes_ctx_t {
     void *     hal_ctx;
 } api_aes_ctx_t;
 
+/**
+ * API SM4 defines
+ **/
+
+#define SM4_ENCRYPT     1
+#define SM4_DECRYPT     0
+
 typedef enum _sm4_type_t {
     SM4_ECB     = 0,
     SM4_CBC     = 1,
+    SM4_CTR     = 2,
 } sm4_type_t;
+
+typedef struct _api_sm4_ctx_t {
+    sm4_type_t type;
+    bool       is_enc;
+    uint32_t   hal_size;
+    void *     hal_ctx;
+} api_sm4_ctx_t;
 
 typedef enum _des_type_t {
     DES_ECB     = 0,
@@ -108,7 +117,7 @@ typedef enum _des_type_t {
 } des_type_t;
 
 /**
- * AliCrypto API HASH defines 
+ * API HASH defines
  **/
 typedef enum _hash_type_t {
     HASH_NONE   = 0,
@@ -138,7 +147,7 @@ enum {
 };
 
 /**
- * AliCrypto API RSA defines
+ * API RSA defines
  **/
 typedef struct {
     size_t          type;
@@ -150,7 +159,7 @@ typedef struct {
 #define MAX_BLOCK_SIZE 64
 
 /**
- * AliCrypto API RSA defines 
+ * API RSA defines
  **/
 typedef struct _api_rsa_ctx_t {
     uint32_t keybytes;
@@ -203,10 +212,66 @@ typedef struct _rsa_padding_t {
     } pad;
 } rsa_padding_t;
 
-/* internal data types */
-typedef void rsa_keypair_t;
-typedef void rsa_pubkey_t;
-typedef void ecc_keypair_t;
-typedef void ecc_pubkey_t;
+/**
+ * \brief          RSA keypair structure
+ */
+typedef struct _rsa_key_t {
+    size_t   key_bytes;
+    uint8_t  *n;
+    size_t   n_size;
+    uint8_t  *e;
+    size_t   e_size;
+    uint8_t  *d;
+    size_t   d_size;
+    uint8_t  *p;
+    size_t   p_size;
+    uint8_t  *q;
+    size_t   q_size;
+    uint8_t  *dp;
+    size_t   dp_size;
+    uint8_t  *dq;
+    size_t   dq_size;
+    uint8_t  *qp;
+    size_t   qp_size;
+} rsa_key_t;
+
+typedef enum {
+    ECP_DP_NONE = 0,
+    ECP_DP_SECP192R1,      /*!< 192-bits NIST curve  */
+    ECP_DP_SECP224R1,      /*!< 224-bits NIST curve  */
+    ECP_DP_SECP256R1,      /*!< 256-bits NIST curve  */
+    ECP_DP_SECP384R1,      /*!< 384-bits NIST curve  */
+    ECP_DP_SECP521R1,      /*!< 521-bits NIST curve  */
+    ECP_DP_BP256R1,        /*!< 256-bits Brainpool curve */
+    ECP_DP_BP384R1,        /*!< 384-bits Brainpool curve */
+    ECP_DP_BP512R1,        /*!< 512-bits Brainpool curve */
+    ECP_DP_CURVE25519,     /*!< Curve25519 */
+    ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
+    ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
+    ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
+    ECP_DP_SMP256R1,       /*!< 256-bits SM2 curve */
+    ECP_DP_SMP256R2,       /*!< 256-bits SM2 test curve */
+} ecp_curve_id_t;
+
+/**
+ * \brief          SM2 keypair structure
+ */
+typedef struct _ecc_keypair_t {
+    ecp_curve_id_t curve;   /* elliptic curve name*/
+    uint8_t *x;      /* x coordinate of pub key */
+    size_t  x_size;
+    uint8_t *y;      /* y coordinate of pub key */
+    size_t  y_size;
+    uint8_t *d;      /* secret value */
+    size_t  d_size;
+} ecc_key_t;
+
+typedef struct _icrypt_key_data_t {
+    uint8_t key_type;
+    union {
+        rsa_key_t rsa_key;
+        ecc_key_t ecc_key;
+    };
+} icrypt_key_data_t;
 
 #endif /* _ALI_CRYPTO_TYPES_H_ */

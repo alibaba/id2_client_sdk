@@ -30,6 +30,12 @@ static void _dump_chip_conf_info()
         chip_log_info("CONFIG_CHIP_KEY_TYPE: %s\n", "CHIP_KEY_TYPE_AES");
     } else if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_RSA) {
         chip_log_info("CONFIG_CHIP_KEY_TYPE: %s\n", "CHIP_KEY_TYPE_RSA");
+    } else if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM1) {
+        chip_log_info("CONFIG_CHIP_KEY_TYPE: %s\n", "CHIP_KEY_TYPE_SM1");
+    } else if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM2) {
+        chip_log_info("CONFIG_CHIP_KEY_TYPE: %s\n", "CHIP_KEY_TYPE_SM2");
+    } else if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM4) {
+        chip_log_info("CONFIG_CHIP_KEY_TYPE: %s\n", "CHIP_KEY_TYPE_SM4");
     }
 
     chip_log_info("========================================\n");
@@ -85,9 +91,9 @@ uint32_t km_get_id2(uint8_t* id2, uint32_t* len)
      CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_AES  || \
      CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM1  || \
      CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM4)
-uint32_t km_cipher(const char* name, const uint32_t name_len,
+uint32_t km_cipher(const char* name, uint32_t name_len,
                    km_sym_param* cipher_params,
-                   const uint8_t* iv, const uint32_t iv_len,
+                   uint8_t* iv, uint32_t iv_len,
                    uint8_t* src, size_t src_len, uint8_t* dest, size_t* dest_len)
 {
     km_block_mode_type block_mode = cipher_params->cipher_param.block_mode;
@@ -135,13 +141,14 @@ uint32_t km_cipher(const char* name, const uint32_t name_len,
 
 #elif (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_RSA)
 
-uint32_t km_sign(const char* name, const uint32_t name_len, void* sign_params,
-                 const uint8_t* data, const size_t data_len, uint8_t* out, size_t* out_len)
+uint32_t km_sign(const char* name, uint32_t name_len,
+                 km_sign_param* sign_params,
+                 uint8_t* digest, uint32_t digest_len,
+                 uint8_t* signature, uint32_t* signature_len)
 {
-    km_sign_param* km_params = (km_sign_param*)sign_params;
+    km_sign_param* km_params = sign_params;
     asym_sign_verify_t type;
     irot_result_t result;
-    uint32_t output_len;
     uint32_t km_ret;
 
     km_ret = _check_km_key_name(name, name_len);
@@ -162,24 +169,21 @@ uint32_t km_sign(const char* name, const uint32_t name_len, void* sign_params,
         return KM_ERR_BAD_PARAMS;
     }
 
-    output_len = *out_len;
     result = irot_hal_asym_priv_sign(NULL, 0,
-                  data, data_len, out, &output_len, type);
+                  digest, digest_len, signature, signature_len, type);
     if (result != IROT_SUCCESS) {
         return KM_ERR_GENERIC;
     }
 
-    *out_len = output_len;
-
     return KM_SUCCESS;
 }
 
-uint32_t km_asym_decrypt(const char* name, const uint32_t name_len, void* enc_params,
-                 const uint8_t* src, const size_t src_len, uint8_t* dest, size_t* dest_len)
+uint32_t km_asym_decrypt(const char* name, uint32_t name_len,
+                         km_enc_param* enc_params,
+                         uint8_t* src, uint32_t src_len,
+                         uint8_t* dest, uint32_t* dest_len)
 {
-    km_enc_param* km_params = (km_enc_param *)enc_params;
     irot_result_t result;
-    uint32_t out_len;
     uint32_t km_ret;
 
     km_ret = _check_km_key_name(name, name_len);
@@ -188,21 +192,123 @@ uint32_t km_asym_decrypt(const char* name, const uint32_t name_len, void* enc_pa
         return km_ret;
     }
 
-    if (km_params->padding_type != KM_PKCS1) {
-        chip_log_error("bad padding type, %d\n", km_params->padding_type);
+    if (enc_params->padding_type != KM_PKCS1) {
+        chip_log_error("bad padding type, %d\n", enc_params->padding_type);
         return KM_ERR_BAD_PARAMS;
     }
 
-    out_len = *dest_len;
     result = irot_hal_asym_priv_decrypt(NULL, 0,
-                  src, src_len, dest, &out_len, ASYM_PADDING_PKCS1);
+                  src, src_len, dest, dest_len, ASYM_PADDING_PKCS1);
     if (result != IROT_SUCCESS) {
         return KM_ERR_GENERIC;
     }
 
-    *dest_len = out_len;
+    return KM_SUCCESS;
+}
+
+uint32_t km_verify(const char *name, uint32_t name_len,
+               km_sign_param *sign_params,
+               const uint8_t *digest, uint32_t digest_len,
+               const uint8_t *signature, uint32_t signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_asym_encrypt(const char *name, uint32_t name_len,
+                         km_enc_param *enc_params,
+                         uint8_t *src, uint32_t src_len,
+                         uint8_t *dest, uint32_t *dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+#elif (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM2)
+
+uint32_t km_msg_sign(const char* name, uint32_t name_len,
+                km_sign_param* sign_params,
+                uint8_t *id, size_t id_len,
+                uint8_t* msg, size_t msg_len,
+                uint8_t* signature, uint32_t* signature_len)
+{
+    km_sign_param* km_params = sign_params;
+    asym_sign_verify_t type;
+    irot_result_t result;
+    uint32_t km_ret;
+    char *fix_id = "1234567812345678";
+
+    km_ret = _check_km_key_name(name, name_len);
+    if (km_ret != KM_SUCCESS) {
+        chip_log_error("name is not match, %s\n", name);
+        return km_ret;
+    }
+
+    if (km_params->padding_type != KM_NO_PADDING) {
+        return KM_ERR_BAD_PARAMS;
+    }
+
+    if (km_params->digest_type == KM_SM3) {
+        type = ASYM_TYPE_SM2_SM3;
+    } else {
+        return KM_ERR_BAD_PARAMS;
+    }
+
+    if (id_len != strlen(fix_id) || memcmp(id, fix_id, id_len)) {
+        chip_log_error("user id is not correct, %s\n", id);
+        return KM_ERR_BAD_PARAMS;
+    }
+
+    result = irot_hal_asym_priv_sign(NULL, 0,
+                  msg, msg_len, signature, signature_len, type);
+    if (result != IROT_SUCCESS) {
+        return KM_ERR_GENERIC;
+    }
 
     return KM_SUCCESS;
+}
+
+uint32_t km_asym_decrypt(const char* name, uint32_t name_len,
+                         km_enc_param* enc_params,
+                         uint8_t* src, uint32_t src_len,
+                         uint8_t* dest, uint32_t* dest_len)
+{
+    irot_result_t result;
+    uint32_t km_ret;
+
+    km_ret = _check_km_key_name(name, name_len);
+    if (km_ret != KM_SUCCESS) {
+        chip_log_error("name is not match, %s\n", name);
+        return km_ret;
+    }
+
+    if (enc_params->padding_type != KM_NO_PADDING) {
+        chip_log_error("bad padding type, %d\n", enc_params->padding_type);
+        return KM_ERR_BAD_PARAMS;
+    }
+
+    result = irot_hal_asym_priv_decrypt(NULL, 0,
+                  src, src_len, dest, dest_len, ASYM_PADDING_NOPADDING);
+    if (result != IROT_SUCCESS) {
+        return KM_ERR_GENERIC;
+    }
+
+    return KM_SUCCESS;
+}
+
+uint32_t km_msg_verify(const char *name, uint32_t name_len,
+                       km_sign_param *sign_params,
+                       uint8_t *id, size_t id_len,
+                       uint8_t *msg, size_t msg_len,
+                       uint8_t *signature, uint32_t signature_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_asym_encrypt(const char *name, uint32_t name_len,
+                         km_enc_param *enc_params,
+                         uint8_t *src, uint32_t src_len,
+                         uint8_t *dest, uint32_t *dest_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
 }
 
 #endif  /* CONFIG_CHIP_KEY_TYPE */
@@ -212,13 +318,13 @@ uint32_t km_set_id2(uint8_t* id2, uint32_t len)
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_generate_key(const char *name, const uint32_t name_len,
-                         km_key_type key_type, void *arg)
+uint32_t km_generate_key(const char *name, uint32_t name_len,
+                         km_gen_param_t *arg)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_import_key(const char* name, const uint32_t name_len,
+uint32_t km_import_key(const char* name, uint32_t name_len,
              km_format_t format, const km_key_data_t* key_data, const uint32_t key_data_len)
 {
     return KM_ERR_NOT_SUPPORTED;
@@ -229,26 +335,26 @@ uint32_t km_get_attestation(uint8_t* id, uint32_t* id_len)
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_delete_key(const char *name, const uint32_t name_len)
+uint32_t km_delete_key(const char *name, uint32_t name_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_envelope_begin(void **ctx, const char *name, const uint32_t name_len,
-        uint8_t *iv, uint16_t iv_len,
+uint32_t km_envelope_begin(void **ctx, const char *name, uint32_t name_len,
+        uint8_t *iv, uint32_t iv_len,
         uint8_t *protected_key, uint32_t *protected_key_len, km_purpose_type is_enc)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_envelope_update(void *ctx, uint8_t *src, uint32_t src_len,
-        uint8_t *dest, uint32_t *dest_len)
+uint32_t km_envelope_update(void *ctx, uint8_t *src, size_t src_len,
+        uint8_t *dest, size_t *dest_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_envelope_finish(void *ctx, uint8_t *src, uint32_t src_len,
-        uint8_t *dest, uint32_t *dest_len)
+uint32_t km_envelope_finish(void *ctx, uint8_t *src, size_t src_len,
+        uint8_t *dest, size_t *dest_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
@@ -259,6 +365,11 @@ uint32_t km_set_id2_state(uint32_t state)
 }
 
 uint32_t km_get_id2_state(uint32_t *state)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_id2_dkey_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len)
 {
     return KM_ERR_NOT_SUPPORTED;
 }

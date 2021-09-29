@@ -59,7 +59,7 @@ int ls_hal_aes_ecb_process(void *ctx, const uint8_t *src, uint8_t *dst, size_t s
     }
 
     if (size % HAL_AES_BLOCK_SIZE != 0) {
-        LS_HAL_LOG("invalid size, %d\n", size);
+        LS_HAL_LOG("invalid size, %ld\n", size);
         return HAL_CRYPT_BAD_PARAMETERS;
     }
 
@@ -68,7 +68,7 @@ int ls_hal_aes_ecb_process(void *ctx, const uint8_t *src, uint8_t *dst, size_t s
     while(size > 0) {
         ret = impl_aes_crypt_ecb(&(impl_ctx->ctx), impl_ctx->mode, src, dst);
         if (ret != 0) {
-            LS_HAL_LOG("invalid size, %d\n", size);
+            LS_HAL_LOG("invalid size, %ld\n", size);
             return HAL_CRYPT_ERROR;
         }
 
@@ -180,6 +180,7 @@ int ls_hal_aes_ctr_init(void *ctx, int is_enc,
     }
 
     impl_ctx = (impl_aes_ctx_t *)ctx;
+    impl_ctx->offset = 0;
     memcpy(impl_ctx->iv, iv, AES_IV_SIZE);
     impl_aes_init(&(impl_ctx->ctx));
 

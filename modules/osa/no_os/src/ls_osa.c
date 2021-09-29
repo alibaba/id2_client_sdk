@@ -266,7 +266,7 @@ long long ls_osa_get_time_ms(void)
     long long ret = 0;
 
     gettimeofday(&tv, NULL);
-    ret = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    ret = tv.tv_sec * (1000LL) + tv.tv_usec / (1000LL);
 
     return ret;
 }
