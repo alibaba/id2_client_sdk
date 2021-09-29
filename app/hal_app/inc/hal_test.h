@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017  Alibaba Group Holding Limited.
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited.
  */
 
 #ifndef _HAL_TEST_H_
@@ -18,6 +18,7 @@ int hal_sst_test(void);
 
 int hal_aes_test(void);
 int hal_rsa_test(void);
+int hal_sm2_test(void);
 int hal_hash_test(void);
 int hal_rand_test(void);
 int hal_crypto_test(void);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #include <stdio.h>
@@ -25,14 +25,22 @@ extern int idtls_client_sample(
 int main(int argc, char *argv[])
 {
     int ret;
+    uint32_t i, loop_count = 1;
 
     printf("===========> iTLS Client Sample start.\n");
-    ret = itls_client_sample(
-               PRODUCT_KEY, PRODUCT_SECRET, DEBUG_LEVEL);
-    if (ret < 0) {
-        printf("iTLS Client Sample Failed!\n");
-        return -1;
+
+    for (i = 0; i < loop_count; i++) {
+
+        printf("===================== iTLS Client Sample - Loop Count: %d\n", i);
+
+        ret = itls_client_sample(
+                   PRODUCT_KEY, PRODUCT_SECRET, DEBUG_LEVEL);
+        if (ret < 0) {
+            printf("iTLS Client Sample Failed!\n");
+            return -1;
+        }
     }
+
     printf("<=========== iTLS Client Sample End.\n\n");
 
 #if defined(CONFIG_SSL_DTLS)

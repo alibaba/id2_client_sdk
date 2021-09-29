@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2017 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited
  */
 
 #ifndef __IROT_HAL_H__
@@ -56,7 +56,7 @@ typedef enum {
     ASYM_TYPE_RSA_SHA256_PKCS1  = 0x02,
     ASYM_TYPE_RSA_SHA384_PKCS1  = 0x03,
     ASYM_TYPE_RSA_SHA512_PKCS1  = 0x04,
-    ASYM_TYPE_SM3_SM2           = 0x05,
+    ASYM_TYPE_SM2_SM3           = 0x05,
     ASYM_TYPE_ECDSA             = 0x06,
 } asym_sign_verify_t;
 

@@ -1,179 +1,474 @@
-
 /**
  * Copyright (C) 2018  Alibaba Group Holding Limited.
  */
 
 #include "ali_crypto.h"
+#include "ls_hal_crypt.h"
 
-#ifdef ALI_CRYPTO_SM2
-#include "sal_crypto.h"
-
-ali_crypto_result ali_sm2_get_keypair_size(size_t keybits, size_t *size)
+ali_crypto_result ali_sm2_public_encrypt(const ecc_key_t *key,
+                                         const uint8_t *src, size_t src_size,
+                                         uint8_t *dst, size_t *dst_size)
 {
-    ali_crypto_result result = 0;
+    ali_crypto_result result = ALI_CRYPTO_SUCCESS;
+    int ret;
+    void *hal_ctx;
 
-    if (size == NULL) {
+    if (key == NULL) {
+        CRYPTO_ERR_LOG("invalid key\n");
+        return ALI_CRYPTO_INVALID_CONTEXT;
+    }
+
+    if (src == NULL || src_size == 0 || dst_size == NULL ||
+        ((dst == NULL) && (*dst_size != 0))) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
         return ALI_CRYPTO_INVALID_ARG;
     }
 
-    result = sal_sm2_get_keypair_size(keybits, size);
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        return ALI_CRYPTO_OUTOFMEM;
+    }
+
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_ecc_init_pubkey(hal_ctx, key->curve,
+                                 key->x, key->x_size,
+                                 key->y, key->y_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_sm2_encrypt(hal_ctx,
+                             src, src_size,
+                             dst, dst_size);
+    if (ret == HAL_CRYPT_SHORT_BUFFER) {
+        result = ALI_CRYPTO_SHORT_BUFFER;
+        goto cleanup;
+    }
+
+    if (ret) {
+        CRYPTO_ERR_LOG("public enc failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+cleanup:
+    // free hal_ctx
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
     return result;
 }
 
-
-ali_crypto_result ali_sm2_get_pubkey_size(size_t keybits, size_t *size)
+ali_crypto_result ali_sm2_private_decrypt(const ecc_key_t *key,
+                                          const uint8_t *src, size_t src_size,
+                                          uint8_t *dst, size_t *dst_size)
 {
-    ali_crypto_result result = 0;
+    ali_crypto_result result = ALI_CRYPTO_SUCCESS;
+    int ret;
+    void *hal_ctx;
 
-    if (size == NULL) {
+    if (key == NULL) {
+        CRYPTO_ERR_LOG("invalid key\n");
+        return ALI_CRYPTO_INVALID_CONTEXT;
+    }
+
+    if (src == NULL || src_size == 0 || dst_size == NULL ||
+        ((dst == NULL) && (*dst_size != 0))) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
         return ALI_CRYPTO_INVALID_ARG;
     }
 
-    result = sal_sm2_get_pubkey_size(keybits, size);
-    return result;
-}
-
-ali_crypto_result ali_sm2_init_keypair(
-                      const uint8_t *x, size_t x_size,
-                      const uint8_t *y, size_t y_size,
-                      const uint8_t *d, size_t d_size,
-                      size_t curve, ecc_keypair_t *keypair)
-{
-
-    ali_crypto_result result = 0;
-
-    if (keypair == NULL || x == NULL || x_size == 0 
-		|| y == NULL || y_size == 0 || d == NULL || d_size == 0 
-		|| curve == 0) {
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "invalid args!\n");
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        return ALI_CRYPTO_OUTOFMEM;
     }
 
-    result = sal_sm2_init_keypair(x, x_size, y, y_size, d, d_size, curve, keypair);
-    return result;
-}
-
-ali_crypto_result ali_sm2_init_pubkey(
-                      const uint8_t *x, size_t x_size,
-                      const uint8_t *y, size_t y_size,
-                      size_t curve, ecc_pubkey_t *pubkey)
-{
-    ali_crypto_result result = 0;
-
-    if (pubkey == NULL || 
-        x == NULL || x_size == 0 ||
-        y == NULL || y_size == 0 ||
-        curve == 0) {
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "Init_keypair: invalid args!\n");
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
     }
 
-    result = sal_sm2_init_pubkey(x, x_size, y, y_size, curve, pubkey);
+    ret = ls_hal_ecc_init_keypair(hal_ctx, key->curve,
+                                  key->x, key->x_size,
+                                  key->y, key->y_size,
+                                  key->d, key->d_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_sm2_decrypt(hal_ctx,
+                             src, src_size,
+                             dst, dst_size);
+    if (ret == HAL_CRYPT_SHORT_BUFFER) {
+        result = ALI_CRYPTO_SHORT_BUFFER;
+        goto cleanup;
+    }
+
+    if (ret) {
+        CRYPTO_ERR_LOG("private dec failed(0x%08x)\n", ret);
+        ret = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+cleanup:
+    // free hal_ctx
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
     return result;
 }
 
-ali_crypto_result ali_sm2_gen_keypair(
-                      size_t curve, ecc_keypair_t *keypair)
+ali_crypto_result ali_sm2_sign(const ecc_key_t *key,
+                               const uint8_t *dig, size_t dig_size,
+                               uint8_t *sig, size_t *sig_size)
 {
-    ali_crypto_result result = 0;
+    ali_crypto_result result = ALI_CRYPTO_SUCCESS;
+    int ret;
+    void *hal_ctx;
 
-    if (curve == 0 || keypair == NULL) {
+    if (dig == NULL || dig_size == 0 || sig_size == NULL ||
+        ((sig == NULL) && (*sig_size != 0))) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
         return ALI_CRYPTO_INVALID_ARG;
     }
 
-    result = sal_sm2_gen_keypair(curve, keypair);
+    if (dig_size != SM3_HASH_SIZE) {
+        CRYPTO_ERR_LOG("wrong digest size(%ld)\n", dig_size);
+        return ALI_CRYPTO_INVALID_ARG;
+    }
+
+    if (*sig_size < 2*dig_size) {
+        *sig_size = 2*dig_size;
+        return ALI_CRYPTO_SHORT_BUFFER;
+    }
+
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        return ALI_CRYPTO_OUTOFMEM;
+    }
+
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_ecc_init_keypair(hal_ctx, key->curve,
+                                  key->x, key->x_size,
+                                  key->y, key->y_size,
+                                  key->d, key->d_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_sm2_sign(hal_ctx,
+                          dig, dig_size,
+                          sig, sig_size);
+    if (ret == HAL_CRYPT_SHORT_BUFFER) {
+        result = ALI_CRYPTO_SHORT_BUFFER;
+        goto cleanup;
+    }
+
+    if (ret) {
+        CRYPTO_ERR_LOG("private dec failed(0x%08x)\n", ret);
+        ret = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+cleanup:
+    // free hal_ctx
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
     return result;
 }
 
-ali_crypto_result ali_sm2_sign(const ecc_keypair_t *priv_key,
-                      const uint8_t *src, size_t src_size,
-                      uint8_t *signature, size_t *sig_size)
+ali_crypto_result ali_sm2_verify(const ecc_key_t *key,
+                                 const uint8_t *dig, size_t dig_size,
+                                 const uint8_t *sig, size_t sig_size,
+                                 bool *p_result)
 {
     ali_crypto_result result = 0;
+    int ret;
+    void *hal_ctx;
 
-    if (priv_key == NULL ||
-        src == NULL || src_size == 0 ||
-        signature == NULL || (*sig_size) == 0){
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "sm2_sign: invalid input args!\n");
+    if (p_result == NULL
+        || dig == NULL || dig_size == 0
+        || sig == NULL || sig_size == 0) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
+        return ALI_CRYPTO_INVALID_ARG;
+    }
+    *p_result = false;
+
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        return ALI_CRYPTO_OUTOFMEM;
     }
 
-    result = sal_sm2_sign(priv_key, src, src_size, signature, sig_size);
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_ecc_init_pubkey(hal_ctx, key->curve,
+                                 key->x, key->x_size,
+                                 key->y, key->y_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_sm2_verify(hal_ctx,
+                            dig, dig_size,
+                            sig, sig_size);
+cleanup:
+    // free hal_ctx
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
+    if (HAL_CRYPT_INVALID_AUTH == ret) {
+        return ALI_CRYPTO_INVALID_AUTHENTICATION;
+    } else if (ret) {
+        CRYPTO_ERR_LOG("verify failed(0x%08x)\n", ret);
+        return ALI_CRYPTO_ERROR;
+    } else {
+        *p_result = true;
+    }
+
     return result;
 }
 
-ali_crypto_result ali_sm2_verify(const ecc_pubkey_t *pub_key,
-                      const uint8_t *src, size_t src_size,
-                      const uint8_t *signature, size_t sig_size,
-                      bool *p_result)
+ali_crypto_result ali_sm2_msg_sign(const ecc_key_t *key,
+                                   hash_type_t hash,
+                                   const uint8_t *id,  size_t id_size,
+                                   const uint8_t *msg, size_t msg_size,
+                                   uint8_t *sig, size_t *sig_size)
 {
-    ali_crypto_result result = 0;
-    
-    if (pub_key == NULL ||
-        src == NULL || src_size == 0 ||
-        signature == NULL || sig_size == 0 ||
-        p_result == NULL){
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "sm2_verify: invalid input args!\n");
+    ali_crypto_result result = ALI_CRYPTO_SUCCESS;
+    int ret = 0;
+    void *hal_ctx = NULL;
+    // digest
+    uint8_t *e = NULL;
+    size_t e_size;
+
+    if (key == NULL) {
+        CRYPTO_ERR_LOG("invalid key\n");
+        return ALI_CRYPTO_INVALID_CONTEXT;
     }
 
-    result = sal_sm2_verify(pub_key, src, src_size, signature, sig_size, p_result);
+    if (msg == NULL || msg_size == 0   ||
+       ( id == NULL ||  id_size == 0 ) ||
+        ((sig == NULL) && (*sig_size != 0))) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
+        return ALI_CRYPTO_INVALID_ARG;
+    }
+
+    // set the max possible hash length by default
+    e_size = SHA512_HASH_SIZE;
+    e = (uint8_t *)ls_osa_malloc(e_size);
+    if (NULL == e) {
+        CRYPTO_ERR_LOG("malloc %ld failed\n", e_size);
+        goto cleanup;
+    }
+
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        result = ALI_CRYPTO_OUTOFMEM;
+        goto cleanup;
+    }
+
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_ecc_init_keypair(hal_ctx, key->curve,
+                                  key->x, key->x_size,
+                                  key->y, key->y_size,
+                                  key->d, key->d_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    // ls_hal
+    ret = ls_hal_sm2_msg_digest(hal_ctx,
+                                hash,
+                                id, id_size,
+                                msg, msg_size,
+                                e, &e_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("msg digest failed(0x%08x)\n", ret);
+        goto cleanup;
+    }
+
+    // sm2 sign
+    ret = ls_hal_sm2_sign(hal_ctx,
+                          e, e_size,
+                          sig, sig_size);
+    if (ret == HAL_CRYPT_SHORT_BUFFER) {
+        result = ALI_CRYPTO_SHORT_BUFFER;
+        goto cleanup;
+    }
+
+    if (ret) {
+        CRYPTO_ERR_LOG("hal sm2 sign failed(0x%08x)\n", ret);
+        goto cleanup;
+    }
+
+cleanup:
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
+    if (e) {
+        ls_osa_free(e);
+    }
+
     return result;
 }
 
-ali_crypto_result ali_sm2_encrypt(const ecc_pubkey_t *pub_key,
-                      const uint8_t *plaintext, size_t p_size,
-                      uint8_t *ciphertext, size_t *c_size)
+ali_crypto_result ali_sm2_msg_verify(const ecc_key_t *key,
+                                     hash_type_t hash,
+                                     const uint8_t *id,  size_t id_size,
+                                     const uint8_t *msg, size_t msg_size,
+                                     const uint8_t *sig, size_t sig_size,
+                                     bool *p_result)
 {
-    ali_crypto_result result = 0;
+    ali_crypto_result result = ALI_CRYPTO_SUCCESS;
+    int ret = 0;
+    void *hal_ctx = NULL;
+    // digest
+    uint8_t *e = NULL;
+    size_t e_size;
 
-    if (pub_key == NULL || plaintext  == NULL || p_size == 0 ||
-              (ciphertext == NULL && (*c_size) == 0)){
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "ali_sm2_encrypt: invalid input args!\n");
-    }
-    result = sal_sm2_encrypt(pub_key, plaintext, p_size, ciphertext, c_size);
-    return result;
-};
-
-ali_crypto_result ali_sm2_decrypt(const ecc_keypair_t *priv_key,
-                      const uint8_t *ciphertext, size_t *c_size,
-                      uint8_t *plaintext, size_t *p_size)
-{
-    ali_crypto_result result = 0;
-
-    if (priv_key == NULL || ciphertext == NULL || (*c_size) == 0 ||
-                (plaintext  == NULL && (*p_size) == 0)){
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "ali_sm2_decrypt: invsald input args!\n");
+    if (key == NULL) {
+        CRYPTO_ERR_LOG("invalid key\n");
+        return ALI_CRYPTO_INVALID_CONTEXT;
     }
 
-    result = sal_sm2_decrypt(priv_key, ciphertext, c_size, plaintext, p_size);
-    return result;
-};
+    if (p_result == NULL ||
+        msg == NULL || msg_size == 0  ||
+        id == NULL  || id_size == 0   ||
+        sig == NULL || sig_size == 0) {
+        CRYPTO_ERR_LOG("invalid input args!\n");
+        return ALI_CRYPTO_INVALID_ARG;
+    }
+    *p_result = false;
 
-
-ali_crypto_result ali_sm2dh_derive_secret(const uint8_t flag_server,
-                const uint8_t *ID, size_t ID_size,
-                const uint8_t *peer_ID, size_t peer_ID_size,
-                const ecc_keypair_t *priv_key,
-                const ecc_keypair_t *tmp_priv_key,
-                const ecc_pubkey_t *peer_pubkey,
-                const ecc_pubkey_t *tmp_peer_pubkey,
-                uint8_t *shared_secret, const size_t secret_size)
-{
-    ali_crypto_result result = 0;
-
-    if ((flag_server != 1 && flag_server != 0) ||
-           ID == NULL || ID_size == 0 ||
-           peer_ID == NULL || peer_ID_size == 0 ||
-           priv_key == NULL || tmp_priv_key == NULL ||
-           peer_pubkey == NULL || tmp_peer_pubkey == NULL ||
-           shared_secret == NULL || secret_size == 0){
-        PRINT_RET(ALI_CRYPTO_INVALID_ARG, "ali_sm2dh_derive_secret: invalid input args!\n");
+    // set the max possible hash length by default
+    e_size = SHA512_HASH_SIZE;
+    e = (uint8_t *)ls_osa_malloc(e_size);
+    if (NULL == e) {
+        CRYPTO_ERR_LOG("malloc %ld failed\n", e_size);
+        result = ALI_CRYPTO_OUTOFMEM;
+        goto cleanup;
     }
 
-    result = sal_sm2dh_derive_secret(flag_server,
-                     ID, ID_size, peer_ID, peer_ID_size,
-                     priv_key, tmp_priv_key,
-                     peer_pubkey, tmp_peer_pubkey,
-                     shared_secret, secret_size);
-    return result;
+    // allocate hal ctx
+    hal_ctx = (void *)ls_osa_malloc(ls_hal_ecc_get_ctx_size());
+    if (hal_ctx == NULL) {
+        CRYPTO_ERR_LOG("malloc %d failed\n", ls_hal_ecc_get_ctx_size());
+        result = ALI_CRYPTO_OUTOFMEM;
+        goto cleanup;
+    }
 
+    // init hal_ctx
+    ret = ls_hal_ecc_init(hal_ctx);
+    if (ret) {
+        CRYPTO_ERR_LOG("hal_ctx init failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    ret = ls_hal_ecc_init_pubkey(hal_ctx, key->curve,
+                                 key->x, key->x_size,
+                                 key->y, key->y_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("init pubkey failed(0x%08x)\n", ret);
+        result = ALI_CRYPTO_ERROR;
+        goto cleanup;
+    }
+
+    // ls_hal
+    ret = ls_hal_sm2_msg_digest(hal_ctx,
+                                hash,
+                                id, id_size,
+                                msg, msg_size,
+                                e, &e_size);
+    if (ret) {
+        CRYPTO_ERR_LOG("msg digest failed(0x%08x)\n", ret);
+        goto cleanup;
+    }
+
+    // sm2 verify
+    ret = ls_hal_sm2_verify(hal_ctx,
+                            e, e_size,
+                            sig, sig_size);
+cleanup:
+    // free hal_ctx
+    if (hal_ctx) {
+        ls_hal_ecc_cleanup(hal_ctx);
+        ls_osa_free(hal_ctx);
+    }
+
+    if (e) {
+        ls_osa_free(e);
+    }
+
+    if (HAL_CRYPT_INVALID_AUTH == ret) {
+        return ALI_CRYPTO_INVALID_AUTHENTICATION;
+    } else if (ret) {
+        CRYPTO_ERR_LOG("verify failed(0x%08x)\n", ret);
+        return ALI_CRYPTO_ERROR;
+    } else {
+        *p_result = true;
+    }
+
+    return result;
 }
-
-#endif /* ALI_CRYPTO_SM2 */

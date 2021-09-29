@@ -1,7 +1,6 @@
 /**
- * Copyright (C) 2017  Alibaba Group Holding Limited.
+ * Copyright (C) 2017-2020  Alibaba Group Holding Limited.
  **/
-
 
 #ifndef __RSA_H
 #define __RSA_H
@@ -56,40 +55,32 @@ extern "C" {
  */
 typedef struct
 {
-    int ver;                        /*!<  always 0          */
-    size_t len;                     /*!<  size(N) in chars  */
-    const uint8_t *n;               /*!<  public modulus    */
-    size_t n_size;
-    const uint8_t *e;               /*!<  public exponent   */
-    size_t e_size;
-    const uint8_t *d;               /*!<  private exponent  */
-    size_t d_size;
-    const uint8_t *p;               /*!<  1st prime factor  */
-    size_t p_size;
-    const uint8_t *q;               /*!<  2nd prime factor  */
-    size_t q_size;
-    const uint8_t *dp;              /*!<  D % (P - 1)       */
-    size_t dp_size;
-    const uint8_t *dq;              /*!<  D % (Q - 1)       */
-    size_t dq_size;
-    const uint8_t *qp;              /*!<  1 / (Q % P)       */
-    size_t qp_size;
-    const uint8_t *rn;              /*!<  cached R^2 mod N  */
-    size_t rn_size;
-    const uint8_t *rp;              /*!<  cached R^2 mod P  */
-    size_t rp_size;
-    const uint8_t *rq;              /*!<  cached R^2 mod Q  */
-    size_t rq_size;
-    const uint8_t *vi;              /*!<  cached blinding value     */
-    size_t vi_size;
-    const uint8_t *vf;              /*!<  cached un-blinding value  */
-    size_t vf_size;
-    int padding;                    /*!<  HAL_RSA_PKCS_V15 for 1.5 padding and
-                                         HAL_RSA_PKCS_v21 for OAEP/PSS */
-    int hash_id;                    /*!<  Hash identifier of impl_md_type_t as
-                                      specified in the impl_md.h header file
+    int ver;                    /*!<  always 0          */
+    size_t len;                 /*!<  size(N) in chars  */
+
+    impl_mpi N;                      /*!<  public modulus    */
+    impl_mpi E;                      /*!<  public exponent   */
+
+    impl_mpi D;                      /*!<  private exponent  */
+    impl_mpi P;                      /*!<  1st prime factor  */
+    impl_mpi Q;                      /*!<  2nd prime factor  */
+    impl_mpi DP;                     /*!<  D % (P - 1)       */
+    impl_mpi DQ;                     /*!<  D % (Q - 1)       */
+    impl_mpi QP;                     /*!<  1 / (Q % P)       */
+
+    impl_mpi RN;                     /*!<  cached R^2 mod N  */
+    impl_mpi RP;                     /*!<  cached R^2 mod P  */
+    impl_mpi RQ;                     /*!<  cached R^2 mod Q  */
+
+    impl_mpi Vi;                     /*!<  cached blinding value     */
+    impl_mpi Vf;                     /*!<  cached un-blinding value  */
+
+    int padding;                /*!<  RSA_PKCS_V15 for 1.5 padding and
+                                      RSA_PKCS_v21 for OAEP/PSS         */
+    int hash_id;                /*!<  Hash identifier of md_type_t as
+                                      specified in the md.h header file
                                       for the EME-OAEP and EMSA-PSS
-                                      encoding */
+                                      encoding                          */
 #if (CONFIG_MULTH_SUPPORT)
     void  *mutex;              /*!<  Thread-safety mutex       */
 #endif

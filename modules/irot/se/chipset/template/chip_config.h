@@ -12,18 +12,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#define CHIP_KEY_TYPE_NON               0
 #define CHIP_KEY_TYPE_3DES              1
 #define CHIP_KEY_TYPE_AES               2
 #define CHIP_KEY_TYPE_RSA               3
-#define CHIP_KEY_TYPE_SM1               4
-#define CHIP_KEY_TYPE_SM4               5
+#define CHIP_KEY_TYPE_ECC               4
+#define CHIP_KEY_TYPE_SM1               5
+#define CHIP_KEY_TYPE_SM2               6
+#define CHIP_KEY_TYPE_SM4               7
 
 #define CHIP_TYPE_SE_STD_CMD            1
 #define CHIP_TYPE_SE_MTK_CMD            2
-
-#ifndef CONFIG_CHIP_KEY_TYPE
-#define CONFIG_CHIP_KEY_TYPE       CHIP_KEY_TYPE_3DES
-#endif
 
 #ifndef CONFIG_CHIP_TYPE
 #define CONFIG_CHIP_TYPE           CHIP_TYPE_SE_STD_CMD
@@ -35,6 +34,7 @@
      CONFIG_CHIP_KEY_TYPE != CHIP_KEY_TYPE_AES && \
      CONFIG_CHIP_KEY_TYPE != CHIP_KEY_TYPE_RSA && \
      CONFIG_CHIP_KEY_TYPE != CHIP_KEY_TYPE_SM1 && \
+     CONFIG_CHIP_KEY_TYPE != CHIP_KEY_TYPE_SM2 && \
      CONFIG_CHIP_KEY_TYPE != CHIP_KEY_TYPE_SM4)
 #error "CONFIG_CHIP_KEY_TYPE error.";
 #endif

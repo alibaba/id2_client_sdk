@@ -19,16 +19,24 @@
  * n/e/d/p/q/dp/dq/qp: rsa key pair elements
  *
  */
-typedef struct _rsa_priv_key_t {
+typedef struct _hal_rsa_keypair_t {
     size_t   key_bytes;
-    uint8_t  n[MAX_RSA_KEY_SIZE >> 3];
-    uint8_t  e[MAX_RSA_KEY_SIZE >> 3];
-    uint8_t  d[MAX_RSA_KEY_SIZE >> 3];
-    uint8_t  p[MAX_RSA_KEY_SIZE >> 4];
-    uint8_t  q[MAX_RSA_KEY_SIZE >> 4];
-    uint8_t  dp[MAX_RSA_KEY_SIZE >> 4];
-    uint8_t  dq[MAX_RSA_KEY_SIZE >> 4];
-    uint8_t  qp[MAX_RSA_KEY_SIZE >> 4];
+    uint8_t  *n;
+    size_t   n_size;
+    uint8_t  *e;
+    size_t   e_size;
+    uint8_t  *d;
+    size_t   d_size;
+    uint8_t  *p;
+    size_t   p_size;
+    uint8_t  *q;
+    size_t   q_size;
+    uint8_t  *dp;
+    size_t   dp_size;
+    uint8_t  *dq;
+    size_t   dq_size;
+    uint8_t  *qp;
+    size_t   qp_size;
 } hal_rsa_keypair_t;
 
 /*
@@ -40,8 +48,10 @@ typedef struct _rsa_priv_key_t {
  */
 typedef struct _hal_rsa_pubkey_t {
     size_t   key_bytes;
-    uint8_t  n[MAX_RSA_KEY_SIZE >> 3];
-    uint8_t  e[MAX_RSA_KEY_SIZE >> 3];
+    uint32_t n_size;
+    uint32_t e_size;
+    uint8_t n[(MAX_RSA_KEY_SIZE >> 3)];
+    uint8_t e[(MAX_RSA_KEY_SIZE >> 3)];
 } hal_rsa_pubkey_t;
 
 /*
@@ -103,7 +113,7 @@ int ls_hal_rsa_public(const void *context,
                       const uint8_t *src, uint8_t *dst,
                       size_t size);
 
-/* 
+/*
  * RSA private key operation
  *
  * context[in]: hal_ctx, must be pre-allocated by the caller,
@@ -115,7 +125,31 @@ int ls_hal_rsa_public(const void *context,
  *              from ls_hal_rsa_init_keypair
  */
 int ls_hal_rsa_private(const void *context,
-           int (*f_rng)(void *, uint8_t *, size_t),
-           const uint8_t *src, uint8_t *dst, size_t size);
+                       int (*f_rng)(void *, uint8_t *, size_t),
+                       const uint8_t *src, uint8_t *dst, size_t size);
+
+/* 
+ * RSA keypaor generation
+ *
+ * context[in]: hal_ctx, must be pre-allocated by the caller,
+ *              the size is got through ls_hal_rsa_get_ctx_size()
+ * f_rng:       Random function
+ * p_rng:       Random seed
+ * nbits:       number of key bits
+ * exponent:    exponent
+ * keypair:     generated keypair contents (in format of hal_rsa_keypair_t)
+ */
+int ls_hal_rsa_gen_keypair(const void *context,
+                           int (*f_rng)(void *, uint8_t *, size_t),
+                           void *p_rng,
+                           unsigned int nbits, int exponent,
+                           void *keypair);
+
+/**
+ * \brief          Free the components of an RSA key
+ *
+ * \param ctx      RSA Context to free
+ */
+void ls_hal_rsa_cleanup(const void *context);
 
 #endif // __LS_HAL_RSA_H__

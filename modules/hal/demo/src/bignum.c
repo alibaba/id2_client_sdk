@@ -1,9 +1,11 @@
 /**
  * Copyright (C) 2017  Alibaba Group Holding Limited.
  **/
+
 #include "ls_osa.h"
 #include "bignum.h"
 #include "bn_mul.h"
+#include "config.h"
 
 /* Implementation that should never be optimized out by the compiler */
 static void impl_mpi_zeroize(impl_mpi_uint *v, size_t n)
@@ -1831,10 +1833,10 @@ cleanup:
  * deterministic, eg for tests).
  */
 int impl_mpi_fill_random(impl_mpi *X, size_t size,
-                            int (*f_rng)(void *, unsigned char *, size_t),
-                            void *p_rng)
+                         int (*f_rng)(void *, unsigned char *, size_t),
+                         void *p_rng)
 {
-    int           ret;
+    int         ret;
     unsigned char buf[HAL_MPI_MAX_SIZE];
 
     if (size > HAL_MPI_MAX_SIZE) {
@@ -1949,7 +1951,7 @@ cleanup:
     return (ret);
 }
 
-#if defined(ALI_ALGO_GENPRIME)
+#if defined(CONFIG_ALGO_GENPRIME)
 
 static const int small_prime[] = {
     3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,
@@ -2239,4 +2241,4 @@ cleanup:
     return (ret);
 }
 
-#endif /* ALI_ALGO_GENPRIME */
+#endif /* CONFIG_ALGO_GENPRIME */

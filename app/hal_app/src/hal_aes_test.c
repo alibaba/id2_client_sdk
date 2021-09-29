@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2017  Alibaba Group Holding Limited.
+ * Copyright (C) 2017-2019 Alibaba Group Holding Limited.
  */
 
 #include "ls_hal.h"
@@ -194,7 +194,7 @@ static const uint8_t _g_ctr_256_enc[] = {
 static int _aes_ecb_encrypt_decrypt(uint32_t idx, bool is_enc, size_t key_len,
                                     uint8_t *src, uint8_t *dst, void *aes_ctx)
 {
-    ls_hal_crypt_result result;
+    int result;
 
     result = ls_hal_aes_ecb_init(aes_ctx, is_enc, (uint8_t *)_g_aes_key, key_len);
     if (result != HAL_CRYPT_SUCCESS) {
@@ -237,7 +237,7 @@ _out:
 static int _aes_cbc_encrypt_decrypt(uint32_t idx, bool is_enc, size_t key_len,
                                     uint8_t *src, uint8_t *dst, void *aes_ctx)
 {
-    ls_hal_crypt_result  result;
+    int  result;
 
     result = ls_hal_aes_cbc_init(aes_ctx, is_enc, (uint8_t *)_g_aes_key, key_len, (uint8_t *)_g_aes_iv);
     if (result != HAL_CRYPT_SUCCESS) {
@@ -279,7 +279,7 @@ _out:
 static int _aes_ctr_encrypt_decrypt(uint32_t idx, bool is_enc, size_t key_len,
                                     uint8_t *src, uint8_t *dst, void *aes_ctx)
 {
-    ls_hal_crypt_result result = 0;
+    int result = 0;
 
     result = ls_hal_aes_ctr_init(aes_ctx, is_enc, (uint8_t *)_g_aes_key, key_len, (uint8_t *)_g_aes_iv);
     if (result != HAL_CRYPT_SUCCESS) {
@@ -343,7 +343,7 @@ _out:
 static int _aes_cfb_encrypt_decrypt(uint32_t idx, bool is_enc, size_t key_len,
                                     uint8_t *src, uint8_t *dst, void *aes_ctx)
 {
-    ls_hal_crypt_result result = 0;
+    int result = 0;
 
     result = ls_hal_aes_cfb_init(aes_ctx, is_enc, (uint8_t *)_g_aes_key, key_len, (uint8_t *)_g_aes_iv);
     if (result != HAL_CRYPT_SUCCESS) {
@@ -458,7 +458,7 @@ cleanup:
 static int _hal_aes_cbc_test(void)
 {
     int               ret;
-    ls_hal_crypt_result result = 0;
+    int               result = 0;
     size_t            i, key_len;
     void *            aes_ctx = NULL;
     size_t            aes_ctx_size;
@@ -531,7 +531,7 @@ cleanup:
 static int _hal_aes_ctr_test(void)
 {
     int               ret;
-    ls_hal_crypt_result result = 0;
+    int               result = 0;
     size_t            i, key_len;
     void *            aes_ctx = NULL;
     size_t            aes_ctx_size;
@@ -604,7 +604,7 @@ cleanup:
 static int _hal_aes_cfb_test(void)
 {
     int               ret;
-    ls_hal_crypt_result result = 0;
+    int               result = 0;
     size_t            i, key_len;
     void *            aes_ctx = NULL;
     size_t            aes_ctx_size;

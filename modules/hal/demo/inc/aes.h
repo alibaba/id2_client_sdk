@@ -40,11 +40,11 @@ typedef enum _impl_aes_type_t {
 
 typedef struct {
     uint32_t             mode;
-    impl_aes_type_t       type;
+    impl_aes_type_t      type;
     uint8_t              iv[AES_IV_SIZE];
     size_t               offset;
     uint8_t              stream_block[AES_BLOCK_SIZE];
-    impl_aes_context      ctx;
+    impl_aes_context     ctx;
 } impl_aes_ctx_t;
 
 /**

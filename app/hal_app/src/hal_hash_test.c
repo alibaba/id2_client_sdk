@@ -79,7 +79,7 @@ static const uint8_t hash_sha256[SHA256_HASH_SIZE] = {
 
 int hal_hash_test(void)
 {
-    ls_hal_crypt_result ret;
+    int               ret;
     uint8_t           type;
     void *            hash_ctx = NULL;
     size_t            hash_ctx_size;
@@ -147,6 +147,7 @@ int hal_hash_test(void)
             hash_ctx = ls_osa_malloc(hash_ctx_size);
             if (hash_ctx == NULL) {
                 HAL_TEST_ERR("malloc(%d) fail\n", (int)hash_ctx_size);
+                return -1;
             }
             memset(hash_ctx, 0, hash_ctx_size);
 
@@ -154,7 +155,7 @@ int hal_hash_test(void)
             if (ret != HAL_CRYPT_SUCCESS) {
                 if (ret != HAL_CRYPT_NOSUPPORT) {
                     HAL_TEST_ERR("init fail(%08x)", ret);
-                    return -1;
+                    goto cleanup;
                 } else {
                     HAL_TEST_INF("[WARN] sha256 not support, continue..\n");
                     ret = 0;
@@ -165,19 +166,23 @@ int hal_hash_test(void)
             ret = ls_hal_sha256_update(hash_ctx, _g_test_data, 13);
             if (ret != HAL_CRYPT_SUCCESS) {
                 HAL_TEST_ERR("update 1th fail(%08x)", ret);
+                return -1;
             }
             ret = ls_hal_sha256_update(hash_ctx, _g_test_data + 13, 63);
             if (ret != HAL_CRYPT_SUCCESS) {
                 HAL_TEST_ERR("update 2th fail(%08x)", ret);
+                goto cleanup;
             }
             ret = ls_hal_sha256_update(hash_ctx, _g_test_data + 13 + 63, 65);
             if (ret != HAL_CRYPT_SUCCESS) {
                 HAL_TEST_ERR("update 3th fail(%08x)", ret);
+                goto cleanup;
             }
 
             ret = ls_hal_sha256_finish(hash_ctx, hash);
             if (ret != HAL_CRYPT_SUCCESS) {
                 HAL_TEST_ERR("final fail(%08x)", ret);
+                goto cleanup;
             }
 
             ls_osa_free(hash_ctx);
@@ -186,6 +191,8 @@ int hal_hash_test(void)
             if (memcmp(hash, hash_sha256, SHA256_HASH_SIZE)) {
                 hal_dump_data("sha256", hash, SHA256_HASH_SIZE);
                 HAL_TEST_ERR("sha256 test fail!\n");
+                ret = -1;
+                goto cleanup;
             } else {
                 HAL_TEST_INF("SHA256 test success!\n");
             }
@@ -241,6 +248,7 @@ int hal_hash_test(void)
         }
     }
 
+cleanup:
     if (hash_ctx) {
         ls_osa_free(hash_ctx);
     }

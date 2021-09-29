@@ -3,10 +3,11 @@
 <br />
 IoT设备身份认证ID²（Internet Device ID），是一种物联网设备的可信身份标识，具备不可篡改、不可伪造、全球唯一的安全属性，是实现万物互联、服务流转的关键基础设施。<br />
 <br />
-ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID²开放平台。此SDK, 支持三种载体Demo, SE（Secure Element）和MDU（安全模组）：<br />
+ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID²开放平台。此SDK, 支持四种载体Demo, SE（Secure Element）, PUF（Physical Unclonable Function）和MDU（安全模组）：<br />
 
 - Demo载体：用于ID²设备端功能的演示，正式产品，需切换到安全载体（Soft-KM, SE, TEE）。<br />
 - SE载体：外挂安全芯片，ID²预烧录在SE芯片上。<br />
+- PUF载体：外挂安全芯片，ID²在PUF芯片内生成，ID和公钥注册到认证中心。<br />
 - MDU载体：安全模组，ID²密钥和SDK在模组中，主控通过A&T指令调用ID²的功能。
 
 > |—— app：加解密硬件适配（HAL）接口和ID²接口的测试程序。<br />
@@ -16,7 +17,7 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 > |—— make.rules：编译配置，可配置编译工具链和编译参数。<br />
 > |—— make.settings：ID²配置，如调试信息、空发功能和载体选择。<br />
 > |—— modules：ID²和ID²依赖的模块。<br />
-> |—— sample：示例代码。
+> |—— sample：示例代码。<br />
 
 
 <a name="cGT85"></a>
@@ -37,9 +38,15 @@ ID² Client SDK是用于设备端开发和调试，帮助开发者快速接入ID
 - make.settings：
 >   CONFIG_LS_ID2_DEBUG：ID²调试信息的开关。<br />
 >   CONFIG_LS_ID2_OTP：ID²密钥在使用时动态下发功能的开关。<br />
->   CONFIG_LS_ID2_ROT_TYPE：ID²的安全载体的类型，SE/Demo/MDU。<br />
->   CONFIG_LS_ID2_KEY_TYPE：ID²的密钥类型，3DES/RSA/AES。<br />
-
+>   CONFIG_LS_ID2_ROT_TYPE：ID²的安全载体的类型，SE|Demo|MDU|PUF。<br />
+>   CONFIG_LS_ID2_KEY_TYPE：ID²的密钥类型，3DES|AES|RSA|ECC|SM1|SM2|SM4。<br />
+>   CONFIG_LS_ID2_ECDP_TYPE：ID²的椭圆曲线参数，K-163|K-233|K-283|K-192|K-224|K-256。<br />
+>   	- K-163：sect163k1 <br />
+>   	- K-233：sect233k1 <br />
+>   	- K-283：sect283k1 <br />
+>   	- K-192：secp192k1 <br />
+>   	- K-224：secp224k1 <br />
+>   	- K-256：secp256k1 <br />
 
 <a name="gG44j"></a>
 ## 编译SDK：
