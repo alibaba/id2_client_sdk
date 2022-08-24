@@ -2,6 +2,7 @@
  * Copyright (C) 2016-2019 Alibaba Group Holding Limited
  */
 
+#include "ls_osa.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -10,13 +11,35 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <semaphore.h>
 
+#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <signal.h>
 
-#include "ls_osa.h"
+#if defined(CONFIG_LS_OS_ANDROID)
+#include <android/log.h>
+#endif
+
+typedef struct __ls_thread_t {
+    pthread_t        tid;
+} _ls_thread_t;
+
+#if defined(CONFIG_MEM_TEST_EN)
+
+#define LS_MEM_INFO_MAGIC   0x12345678
+
+static unsigned int ls_mem_used = 0;
+static unsigned int ls_max_mem_used = 0;
+
+typedef struct {
+    int magic;
+    int size;
+} ls_mem_info_t;
+
+#endif /* CONFIG_MEM_TEST_EN */
 
 void ls_osa_print(const char *fmt, ...)
 {
@@ -24,9 +47,15 @@ void ls_osa_print(const char *fmt, ...)
 
     va_start(va_args, fmt);
 
+#if defined(CONFIG_LS_OS_ANDROID)
+    __android_log_vprint(
+              ANDROID_LOG_INFO,
+              LS_LOG_TAG,
+              fmt, va_args);
+#else
     printf(LS_LOG_TAG);
-
     vprintf(fmt, va_args);
+#endif
 
     va_end(va_args);
 }
@@ -45,17 +74,79 @@ int ls_osa_snprintf(char *str, size_t size, const char *fmt, ...)
 
 void *ls_osa_malloc(size_t size)
 {
+#ifdef CONFIG_MEM_TEST_EN
+    void *buf = NULL;
+    ls_mem_info_t *mem_info;
+
+    buf = malloc(size + sizeof(ls_mem_info_t));
+    if (NULL == buf) {
+        return NULL;
+    } else {
+        memset(buf, 0, size + sizeof(ls_mem_info_t));
+    }
+
+    mem_info = (ls_mem_info_t *)buf;
+    mem_info->magic = LS_MEM_INFO_MAGIC;
+    mem_info->size = size;
+    buf = (uint8_t *)buf + sizeof(ls_mem_info_t);
+
+    ls_mem_used += mem_info->size;
+    if (ls_mem_used > ls_max_mem_used) {
+        ls_max_mem_used = ls_mem_used;
+    }
+
+    ls_osa_print("ls heap ++++++++: 0x%x %4d  total used: %4d  max used: %4d\n",
+                 (size_t)buf, size, ls_mem_used, ls_max_mem_used);
+
+    return buf;
+#else
     return malloc(size);
+#endif
 }
 
 void *ls_osa_calloc(size_t nmemb, size_t size)
 {
+#ifdef CONFIG_MEM_TEST_EN
+    void *buf = NULL;
+
+    if (nmemb == 0 || size == 0) {
+        return NULL;
+    }
+
+    buf = ls_osa_malloc(nmemb * size);
+    if (buf != NULL) {
+        memset(buf, 0, nmemb * size);
+    }
+
+    return buf;
+#else
     return calloc(nmemb, size);
+#endif
 }
 
 void ls_osa_free(void *ptr)
 {
+#ifdef CONFIG_MEM_TEST_EN
+    ls_mem_info_t *mem_info;
+
+    if (ptr == NULL) {
+        return;
+    }
+
+    mem_info = (ls_mem_info_t *)((uint8_t *)ptr - sizeof(ls_mem_info_t));
+    if (mem_info->magic != LS_MEM_INFO_MAGIC) {
+        ls_osa_print("bad mem magic: 0x%x\n", mem_info->magic);
+        return;
+    }
+
+    ls_mem_used -= mem_info->size;
+    ls_osa_print("ls heap --------: 0x%x %4d  total used: %4d  max used: %4d\n",
+                  (size_t)ptr, mem_info->size, ls_mem_used, ls_max_mem_used);
+
+    free(mem_info);
+#else
     free(ptr);
+#endif
 }
 
 void ls_osa_msleep(unsigned int msec)
@@ -89,6 +180,10 @@ int ls_osa_mutex_create(void **mutex)
 
 void ls_osa_mutex_destroy(void *mutex)
 {
+    if (mutex == NULL) {
+        return;
+    }
+
     pthread_mutex_destroy(mutex);
     if (mutex) {
         free(mutex);
@@ -227,5 +322,156 @@ int ls_osa_net_recv(int fd, unsigned char *buf, size_t len, int timeout, int *re
     }
 
     return ret;
+}
+
+ls_osa_sem_t ls_osa_sem_create(uint32_t init_val)
+{
+    int32_t ret;
+    sem_t *sem = NULL;
+
+    sem = (sem_t *)ls_osa_malloc(sizeof(sem_t));
+    if (NULL == sem) {
+        ls_osa_print("out of mem, %d\n", (uint32_t)sizeof(sem_t));
+        return NULL;
+    }
+
+    ret = sem_init(sem, 0, init_val);
+    if (ret != 0) {
+        ls_osa_print("sem init fail - errno: %d\n", errno);
+        ls_osa_free(sem);
+        return NULL;
+    }
+
+    return (ls_osa_sem_t)sem;
+}
+
+void ls_osa_sem_destroy(ls_osa_sem_t sem)
+{
+    if (sem == NULL) {
+        return;
+    }
+
+    ls_osa_free(sem);
+}
+
+int ls_osa_sem_wait(ls_osa_sem_t sem, uint32_t time_ms)
+{
+    int32_t ret;
+    struct timespec ts;
+
+    if (sem == NULL) {
+        ls_osa_print("sem is null\n");
+        return -1;
+    }
+
+    if (LS_TIME_INFINITE == time_ms) {
+        sem_wait(sem);
+        ret = 0;
+    } else if (0 == time_ms) {
+        ret = sem_trywait(sem);
+    } else {
+        ts.tv_sec = time(NULL) + time_ms / 1000;
+        ts.tv_nsec = (time_ms % 1000) * 1000;
+
+        while ((ret = sem_timedwait(sem, &ts)) == -1 && errno == EINTR) {
+            continue;
+        }
+    }
+
+    if (0 != ret) {
+        if (ETIMEDOUT == errno) {
+            ls_osa_print("wait sem timeout\n");
+            return -1;
+        } else {
+            ls_osa_print("unknown err in waiting sem, %d", errno);
+            return -2;
+        }
+    }
+
+    return 0;
+}
+
+void ls_osa_sem_post(ls_osa_sem_t sem)
+{
+    if (sem == NULL) {
+        ls_osa_print("sem is null\n");
+        return;
+    }
+
+    sem_post(sem);
+}
+
+ls_osa_thread_t ls_osa_thread_create(const char *name,
+                      void(*func)(void *), void *arg, size_t stack_size)
+{
+    int32_t ret;
+    size_t retry = 0;
+    _ls_thread_t *thrd = NULL;
+
+    if (func == NULL) {
+        ls_osa_print("invaid input arg\n");
+        return NULL;
+    }
+
+    thrd = ls_osa_malloc(sizeof(_ls_thread_t));
+    if (NULL == thrd) {
+        ls_osa_print("out of mem, %d\n", (uint32_t)sizeof(_ls_thread_t));
+        return NULL;
+    } else {
+        memset(thrd, 0, sizeof(_ls_thread_t));
+    }
+
+    if (name != NULL) {
+        if (strlen(name) > 16) {
+            ls_osa_print("invalid name length: %d\n", (uint32_t)strlen(name));
+            ret = -1;
+            goto _err;
+        }
+
+        prctl(PR_SET_NAME, name);
+    } else {
+        prctl(PR_SET_NAME, "ls_osa_thrd");
+    }
+
+    do {
+        errno = 0;
+        ret = pthread_create(&thrd->tid, NULL, (void *(*)(void *))func, arg);
+        if (ret != 0 && (errno != EAGAIN || retry++ > 10)) {
+            ls_osa_print("pthread create fail, %d\n", ret);
+            goto _err;
+        }
+    } while(ret != 0);
+
+_err:
+    if (ret != 0) {
+       if (thrd != NULL) {
+           ls_osa_free(thrd);
+       }
+
+       thrd = NULL;
+    }
+
+    return (ls_osa_thread_t)thrd;
+}
+
+void ls_osa_thread_destroy(ls_osa_thread_t thread)
+{
+    int32_t ret;
+    _ls_thread_t *thrd;
+
+    if (thread == NULL) {
+        return;
+    }
+
+    thrd = (_ls_thread_t *)thread;
+
+    ret = pthread_join(thrd->tid, NULL);
+    if (ret != 0) {
+        ls_osa_print("pthread join fail, %d\n", ret);
+    }
+
+    ls_osa_free(thrd);
+
+    return;
 }
 

@@ -22,18 +22,58 @@
             \"args\": {\n\
             },\n\
             \"result\": \"%s\"\n\
-        }, {\n\
+        },\n\
+        {\n\
             \"api\": \"id2_client_get_challenge_auth_code\",\n\
             \"args\": {\n\
                 \"challenge\": \"%s\",\n\
                 \"extra\":     \"%s\"\n\
             },\n\
             \"result\": \"%s\"\n\
-        }, {\n\
+        }, \n\
+        {\n\
             \"api\": \"id2_client_get_timestamp_auth_code\",\n\
             \"args\": {\n\
                 \"timestamp\": \"%s\",\n\
                 \"extra\":     \"%s\"\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        }\n\
+    ]\n\
+}"
+
+#define ID2_JSON_MESSAGE_KPM  \
+"{\n\
+    \"reportVersion\": \"%s\",\n\
+    \"sdkVersion\": \"%s\",\n\
+    \"date\": \"%s\",\n\
+    \"testContent\": [\n\
+        {\n\
+            \"api\": \"id2_client_get_id\",\n\
+            \"args\": {\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        },\n\
+        {\n\
+            \"api\": \"id2_client_get_challenge_auth_code\",\n\
+            \"args\": {\n\
+                \"challenge\": \"%s\",\n\
+                \"extra\":     \"%s\"\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        },\n\
+        {\n\
+            \"api\": \"id2_client_get_timestamp_auth_code\",\n\
+            \"args\": {\n\
+                \"timestamp\": \"%s\",\n\
+                \"extra\":     \"%s\"\n\
+            },\n\
+            \"result\": \"%s\"\n\
+        },\n\
+        {\n\
+            \"api\": \"id2_client_kpm_get_auth_code\",\n\
+            \"args\": {\n\
+                \"timestamp\": \"%s\"\n\
             },\n\
             \"result\": \"%s\"\n\
         }\n\
@@ -86,7 +126,7 @@ static int _string_to_hex(char *str, uint32_t str_len, uint8_t *hex, uint32_t he
     return 0;
 }
 
-int id2_client_generate_authcode(void)
+int id2_client_generate_authcode(kpm_suite_t * suite)
 {
     int ret = 0;
     char *message = NULL;
@@ -97,8 +137,15 @@ int id2_client_generate_authcode(void)
     uint32_t ver_max, ver_mid, ver_min;
     uint32_t id2_len = ID2_ID_MAX_LEN;
     uint32_t auth_code_len = ID2_MAX_AUTH_CODE_LEN;
+    uint8_t *kpm_auth_code = NULL;
+
 
     ID2_DBG_LOG("====> ID2 Client Generate AuthCode Start.\n");
+
+    if (suite == NULL) {
+        ID2_DBG_LOG("kpm suite is null\n");
+        return -1;
+    }
 
     ret = id2_client_get_version(&version);
     if (ret != IROT_SUCCESS) {
@@ -112,7 +159,7 @@ int id2_client_generate_authcode(void)
     ls_osa_snprintf(vers_str, 32, "%d.%d.%d", ver_max, ver_mid, ver_min);
     ls_osa_snprintf(date_str, 32, "%s %s", __DATE__, __TIME__);
 
-    message_len = strlen(ID2_JSON_MESSAGE) + 16 + 32 + 32;
+    message_len = strlen(ID2_JSON_MESSAGE_KPM) + 16 + 32 + 32;
 
     ret = id2_client_get_id(id2_id, &id2_len);
     if (ret != IROT_SUCCESS) {
@@ -129,7 +176,7 @@ int id2_client_generate_authcode(void)
         ret = -1;
         goto _out;
     }
-    message_len += auth_code_len;
+    message_len += strlen(ID2_CHALLENGE) + strlen(ID2_EXTRA) + auth_code_len;
 
     auth_code_len = ID2_MAX_AUTH_CODE_LEN;
     ret = id2_client_get_timestamp_auth_code(ID2_TIMESTAMP,
@@ -139,23 +186,61 @@ int id2_client_generate_authcode(void)
         ret = -1;
         goto _out;
     }
-    message_len += auth_code_len;
+    message_len += strlen(ID2_TIMESTAMP) + strlen(ID2_EXTRA) + auth_code_len;
 
-    message = ls_osa_malloc(message_len);
-    if (message == NULL) {
-        ID2_DBG_LOG("out of mem, %d\n", message_len);
-        ret = -1;
-        goto _out;
-    }
+    if (suite->key_idx == LS_KPM_KEY_IDX_INVALID) {
+        message = ls_osa_malloc(message_len);
+        if (message == NULL) {
+            ID2_DBG_LOG("out of mem, %d\n", message_len);
+            ret = -1;
+            goto _out;
+        }
 
-    ret = ls_osa_snprintf(message, message_len, ID2_JSON_MESSAGE,
-                          ID2_REPORT_VERSION, vers_str, date_str,
-                          id2_id,
-                          ID2_CHALLENGE, ID2_EXTRA, auth_code_challenge,
-                          ID2_TIMESTAMP, ID2_EXTRA, auth_code_timestamp);
-    if (ret < 0) {
-        ID2_DBG_LOG("id2 json message generation fail\n");
-        goto _out;
+        ret = ls_osa_snprintf(message, message_len, ID2_JSON_MESSAGE,
+                              ID2_REPORT_VERSION, vers_str, date_str,
+                              id2_id,
+                              ID2_CHALLENGE, ID2_EXTRA, auth_code_challenge,
+                              ID2_TIMESTAMP, ID2_EXTRA, auth_code_timestamp);
+        if (ret < 0) {
+            ID2_DBG_LOG("id2 json message generation fail\n");
+            goto _out;
+        }
+    } else {
+        kpm_auth_code = ls_osa_malloc(ID2_MAX_AUTH_CODE_LEN);
+        if (kpm_auth_code == NULL) {
+            ID2_DBG_LOG("out of mem, %d\n", ID2_MAX_AUTH_CODE_LEN);
+            ret = -1;
+            goto _out;
+        }
+
+        auth_code_len = ID2_MAX_AUTH_CODE_LEN;
+        ret = id2_client_kpm_get_auth_code(suite->key_idx,
+                         suite->key_info, LS_ID2_MODE_CHALLENGE,
+                         ID2_TIMESTAMP, kpm_auth_code, &auth_code_len);
+        if (ret != IROT_SUCCESS) {
+            ID2_DBG_LOG("id2_client_kpm_get_auth_code fail, %d\n", ret);
+            ret = -1;
+            goto _out;
+        }
+        message_len += strlen(ID2_CHALLENGE) + auth_code_len;
+
+        message = ls_osa_malloc(message_len);
+        if (message == NULL) {
+            ID2_DBG_LOG("out of mem, %d\n", message_len);
+            ret = -1;
+            goto _out;
+        }
+
+        ret = ls_osa_snprintf(message, message_len, ID2_JSON_MESSAGE_KPM,
+                              ID2_REPORT_VERSION, vers_str, date_str,
+                              id2_id,
+                              ID2_CHALLENGE, ID2_EXTRA, auth_code_challenge,
+                              ID2_TIMESTAMP, ID2_EXTRA, auth_code_timestamp,
+                              ID2_TIMESTAMP, kpm_auth_code);
+        if (ret < 0) {
+            ID2_DBG_LOG("id2 json message generation fail\n");
+            goto _out;
+        }
     }
 
     ID2_DBG_LOG("\n\n============ ID2 Validation Json Message ============:\n%s\n\n", message);

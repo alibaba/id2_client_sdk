@@ -79,7 +79,7 @@ static const uint8_t hash_sha256[SHA256_HASH_SIZE] = {
 
 int hal_hash_test(void)
 {
-    int               ret;
+    int               ret = 0;
     uint8_t           type;
     void *            hash_ctx = NULL;
     size_t            hash_ctx_size;

@@ -107,8 +107,9 @@ irot_result_t id2_client_get_timestamp_auth_code(const char* timestamp,
                                                  uint8_t* auth_code, uint32_t* auth_code_len);
 
 /**
-* @brief encrypt the cipher data with ID2 key.
+* @brief encrypt the cipher data with ID2 derived key.
 *
+* @param[in]    seed:     seed string, Optional, no more than ID2_MAX_SEED_LEN bytes.
 * @param[in]    in:       input hexadecimal data.
 * @param[in]    in_len:   lenth of the input data, no more than ID2_MAX_CRYPT_LEN bytes.
 * @param[out]   out:      output buffer, containing decrypted hexadecimal data.
@@ -117,8 +118,8 @@ irot_result_t id2_client_get_timestamp_auth_code(const char* timestamp,
 *
 * @return @see id2 error code definitions.
 */
-irot_result_t id2_client_encrypt(const uint8_t *in,
-                  uint32_t in_len, uint8_t *out, uint32_t *out_len);
+irot_result_t id2_client_encrypt(const char *seed,
+                  const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len);
 
 /**
  * @brief decrypt the cipher data with ID2 key.
@@ -192,7 +193,7 @@ irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key
  * @brief set ID2 and key only for debug.
  *
  * @param[in] id2:	   the id2 id string.
- * @param[in] key_type:    the id2 key type, 3DES = 0x01, AES = 0x02
+ * @param[in] key_type:    the id2 key type, 3DES = 0x01, AES = 0x02, SM4 = 0x03
  * @param[in] key_value:   the key value (hex string)
  *
  * example: id2_client_set_id2_and_key("0102030405060708090A0B0C", 0x01, "0102030405060708090A0B0C0D0E0F101112131415161718");
@@ -237,6 +238,25 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
  * @return @see id2 error code definitions.
  */
 irot_result_t id2_client_load_otp_data(const uint8_t *otp_data, uint32_t otp_data_len);
+
+/******************************************************************************
+ *                         ID2 Client Wrap Functions
+ ******************************************************************************
+ */
+
+/**
+ * @brief check if id2 has been provisioned or not, if not, request from itls server.
+ *
+ * @param[in] host:        Specify the hostname of the itls server.
+ * @param[in] port:        Specify the port of itls server.
+ * @param[in] product_key: Specify the product key, terminated with '\0'.
+ * @param[in] product_secret: Specify the product secret, terminated with '\0'.
+ * @param[in] timeout_ms:  Specify the maximum number of mili-seconds to wait.
+ *
+ * @return @see id2 error code definitions.
+ */
+irot_result_t id2_client_wrap_do_provisioning(const char *host, uint32_t port,
+                  const char *product_key, const char *product_secret, uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

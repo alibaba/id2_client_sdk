@@ -56,6 +56,7 @@ uint32_t ls_hal_kv_set(const char *key, const void *value, uint32_t len);
  *
  * @note: if buffer is NULL and *buffer_len is 0, return SST_HAL_ERROR_SHORT_BUFFER
  *        and set *buffer_len to the real length of the value
+ * @note: if *buffer_len < real length, set *buffer_len = real length and return SST_HAL_ERROR_SHORT_BUFFER
  * @note: if key not exist return SST_HAL_ERROR_ITEM_NOT_FOUND
  *
  * @param[in]      key         the key of the KV pair to get.

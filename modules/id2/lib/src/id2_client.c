@@ -6,9 +6,10 @@
 #include "id2_plat.h"
 #include "id2_priv.h"
 #include "id2_client.h"
+#include "ali_crypto.h"
 #include "km.h"
 
-#define ID2_CLIENT_VERSION_NUMBER   0x00030000
+#define ID2_CLIENT_VERSION_NUMBER   0x00030100
 
 /* id2 auth code type */
 #define TYPE_CLIENT_CHALLENGE               0
@@ -39,10 +40,7 @@
 
 static uint8_t s_id2_id[ID2_ID_MAX_LEN + 1] = {0};
 static uint8_t s_id2_id_len = 0;
-static uint8_t s_id2_client_inited = 0;
-
-static uint8_t s_device_random[ID2_MAX_DEVICE_RANDOM_LEN];
-static uint8_t s_device_random_len = 0;
+static uint8_t s_id2_init_count = 0;
 
 static void _dump_id2_conf_info(void)
 {
@@ -88,10 +86,10 @@ static void _id2_inverse(uint8_t* id2, uint32_t id_len)
     uint8_t hex = 0;
 
     for (i = 0; i < id_len; i++) {
-        if (0 != is_hex_char(id2[i])) {
-            hex = char_to_hex(id2[i]);
+        if (0 != id2_is_hex_char(id2[i])) {
+            hex = id2_char_to_hex(id2[i]);
             hex = 0x0F - hex;
-            id2[i] = hex_to_char(hex);
+            id2[i] = id2_hex_to_char(hex);
         }
     }
 }
@@ -130,13 +128,13 @@ static irot_result_t _id2_sym_cipher(uint8_t* in, uint32_t in_len,
     km_sym_param km_param;
 
 #if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_3DES)
-    block_len = DES_BLOCK_SIZE;
+    block_len = ID2_DES_BLOCK_SIZE;
     km_param.key_type = KM_DES3;
 #elif (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_AES)
-    block_len = AES_BLOCK_SIZE;
+    block_len = ID2_AES_BLOCK_SIZE;
     km_param.key_type = KM_AES;
 #else
-    block_len = SM4_BLOCK_SIZE;
+    block_len = ID2_SM4_BLOCK_SIZE;
     km_param.key_type = KM_SM4;
 #endif
 
@@ -209,11 +207,11 @@ static irot_result_t _id2_sign(uint8_t* sign_in, uint32_t sign_in_len,
     }
 
 #if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_3DES)
-    block_len = DES_BLOCK_SIZE;
+    block_len = ID2_DES_BLOCK_SIZE;
 #elif (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_AES)
-    block_len = AES_BLOCK_SIZE;
+    block_len = ID2_AES_BLOCK_SIZE;
 #else
-    block_len = SM4_BLOCK_SIZE;
+    block_len = ID2_SM4_BLOCK_SIZE;
 #endif
 
     padding = block_len - hash_len % block_len;
@@ -272,7 +270,7 @@ irot_result_t _id2_asym_decrypt(uint8_t* in, uint32_t in_len,
     uint32_t out_buf_len = *out_len;
     uint32_t out_data_len = 0;
 
-    if (in_len % RSA_BLOCK_SIZE != 0) {
+    if (in_len % ID2_RSA_BLOCK_SIZE != 0) {
         id2_log_error("invalid input length, %d\n", in_len);
         return IROT_ERROR_BAD_PARAMETERS;
     }
@@ -290,11 +288,11 @@ irot_result_t _id2_asym_decrypt(uint8_t* in, uint32_t in_len,
             break;
         }
 
-        in += RSA_BLOCK_SIZE;
+        in += ID2_RSA_BLOCK_SIZE;
         out += *out_len;
         out_data_len += *out_len;
 
-        in_len -= RSA_BLOCK_SIZE;
+        in_len -= ID2_RSA_BLOCK_SIZE;
         out_buf_len -= *out_len;
     }
 
@@ -500,6 +498,137 @@ static irot_result_t _id2_verify(uint8_t* sign_in, uint32_t sign_in_len,
 
 #endif
 
+#if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_AES)
+
+static irot_result_t _id2_dkey_do_cipher(
+                          uint8_t* key, uint32_t key_len,
+                          uint8_t* in, uint32_t in_len, uint8_t* out)
+{
+    int ret = 0;
+    size_t ctx_size;
+    void* aes_ctx = NULL;
+    ali_crypto_result result;
+
+    if (key == NULL || key_len == 0 ||
+        in == NULL || in_len == 0 || out == NULL) {
+        id2_log_error("invalid input args\n");
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    result = ali_aes_get_ctx_size(AES_ECB, &ctx_size);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("aes get ctx size fail, 0x%x\n", result);
+        return IROT_ERROR_GENERIC;
+    }
+
+    aes_ctx = ls_osa_malloc(ctx_size);
+    if (aes_ctx == NULL) {
+        id2_log_error("out of mem, %d\n", (int)ctx_size);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_aes_init(AES_ECB, true, key, NULL, key_len, NULL, aes_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("aes init fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_aes_process(in, out, in_len, aes_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("aes process fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_aes_finish(NULL, 0, NULL, NULL, SYM_NOPAD, aes_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("aes finish fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    ret = IROT_SUCCESS;
+
+_out:
+    ls_osa_free(aes_ctx);
+
+    return ret;
+}
+
+#elif (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_SM4)
+
+static irot_result_t _id2_dkey_do_cipher(
+                          uint8_t* key, uint32_t key_len,
+                          uint8_t* in, uint32_t in_len, uint8_t* out)
+{
+
+    int ret = 0;
+    size_t ctx_size;
+    void* sm4_ctx = NULL;
+    ali_crypto_result result;
+
+    if (key == NULL || key_len == 0 ||
+        in == NULL || in_len == 0 || out == NULL) {
+        id2_log_error("invalid input args\n");
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
+
+    result = ali_sm4_get_ctx_size(SM4_ECB, &ctx_size);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("sm4 get ctx size fail, 0x%x\n", result);
+        return IROT_ERROR_GENERIC;
+    }
+
+    sm4_ctx = ls_osa_malloc(ctx_size);
+    if (sm4_ctx == NULL) {
+        id2_log_error("out of mem, %d\n", (int)ctx_size);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_sm4_init(SM4_ECB, true, key, NULL, key_len, NULL, sm4_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("sm4 init fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_sm4_process(in, out, in_len, sm4_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("sm4 process fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    result = ali_sm4_finish(NULL, 0, NULL, NULL, SYM_NOPAD, sm4_ctx);
+    if (result != ALI_CRYPTO_SUCCESS) {
+        id2_log_error("sm4 finish fail, 0x%x\n", result);
+        ret = IROT_ERROR_GENERIC;
+        goto _out;
+    }
+
+    ret = IROT_SUCCESS;
+
+_out:
+    ls_osa_free(sm4_ctx);
+
+    return ret;
+}
+
+#else
+static irot_result_t _id2_dkey_do_cipher(
+                          uint8_t* key, uint32_t key_len,
+                          uint8_t* in, uint32_t in_len, uint8_t* out)
+{
+     id2_log_error("not supported!\n");
+
+     return IROT_ERROR_NOT_SUPPORTED;
+}
+#endif
+
+
 #ifdef CONFIG_ID2_AUTH_CODE_HARDEN
 static irot_result_t id2_auth_code_encode(uint8_t *auth_code, uint32_t in_len, uint32_t *out_len)
 {
@@ -510,11 +639,11 @@ static irot_result_t id2_auth_code_encode(uint8_t *auth_code, uint32_t in_len, u
     int ret;
 
     if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_AES) {
-        block_len = AES_BLOCK_SIZE;
+        block_len = ID2_AES_BLOCK_SIZE;
     } else if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_3DES) {
-        block_len = DES_BLOCK_SIZE;
+        block_len = ID2_DES_BLOCK_SIZE;
     } else if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_SM4) {
-        block_len = SM4_BLOCK_SIZE;
+        block_len = ID2_SM4_BLOCK_SIZE;
     } else {
         id2_log_error("not support this type, %d\n", CONFIG_ID2_KEY_TYPE);
         return IROT_ERROR_NOT_SUPPORTED;
@@ -770,30 +899,33 @@ _out:
 
 int is_id2_client_inited(void)
 {
-    return s_id2_client_inited;
+    return s_id2_init_count;
 }
 
 irot_result_t id2_client_init(void)
 {
     uint32_t km_ret;
+    uint32_t irot_type;
 
     id2_log_debug("[id2_client_init enter.]\n");
 
     _dump_id2_conf_info();
 
-    km_ret = km_init();
-    if (km_ret != KM_SUCCESS) {
-        id2_log_error("km init fail, %08x.\n", km_ret);
-        return IROT_ERROR_GENERIC;
+    if (s_id2_init_count++ == 0) {
+        km_ret = km_init();
+        if (km_ret != KM_SUCCESS) {
+            id2_log_error("km init fail, %08x.\n", km_ret);
+            return IROT_ERROR_GENERIC;
+        }
+
+        s_id2_id_len = 0;
+        memset(s_id2_id, 0x00, ID2_ID_MAX_LEN + 1);
+    } else {
+        id2_log_info("id2 init count, %d\n", s_id2_init_count);
     }
 
-    s_id2_id_len = 0;
-    memset(s_id2_id, 0x00, ID2_ID_MAX_LEN + 1);
-
-    s_device_random_len = 0;
-    memset(s_device_random, 0x00, ID2_MAX_DEVICE_RANDOM_LEN);
-
-    s_id2_client_inited = 1;
+    irot_type = km_get_irot_type();
+    id2_log_info("id2 irot type, %d\n", irot_type);
 
     return IROT_SUCCESS;
 }
@@ -802,9 +934,16 @@ irot_result_t id2_client_cleanup(void)
 {
     id2_log_debug("[id2_client_cleanup enter.]\n");
 
-    km_cleanup();
+    if (s_id2_init_count == 0) {
+        id2_log_info("id2 has not been inited\n");
+        return IROT_SUCCESS;
+    }
 
-    s_id2_client_inited = 0;
+    if (--s_id2_init_count == 0) {
+        km_cleanup();
+    } else {
+        id2_log_info("id2 init count, %d\n", s_id2_init_count);
+    }
 
     return IROT_SUCCESS;
 }
@@ -870,7 +1009,7 @@ irot_result_t id2_client_get_id(uint8_t* id, uint32_t* len)
          * ID has been converted into hex format in chip
          */
         if (*len < ID2_ID_MIN_LEN) {
-            hex_to_string(id, *len, s_id2_id, &id_len);
+            id2_hex_to_string(id, *len, s_id2_id, &id_len);
 
             *len = id_len;
             memcpy(id, s_id2_id, *len);
@@ -925,9 +1064,17 @@ irot_result_t id2_client_get_timestamp_auth_code(const char* timestamp,
                               extra, extra_len, auth_code, auth_code_len);
 }
 
-irot_result_t id2_client_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len)
+irot_result_t id2_client_encrypt(const char *seed,
+                  const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len)
 {
     irot_result_t ret;
+    uint8_t key[ID2_DERIV_KEY_LEN];
+    uint32_t seed_len;
+    uint32_t block_len;
+    uint32_t key_len;
+    uint32_t i, padding;
+    uint8_t *in_buf = NULL;
+
     id2_log_debug("[id2_client_decrypt enter.]\n");
 
     if (!is_id2_client_inited()) {
@@ -940,15 +1087,71 @@ irot_result_t id2_client_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *ou
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
+    if (seed == NULL) {
+        seed = "";
+    }
+
+    seed_len = strlen(seed);
+    if (seed_len > ID2_MAX_SEED_LEN) {
+        id2_log_error("seed is excess data.\n");
+        return IROT_ERROR_EXCESS_DATA;
+    }
+
     if (in_len > ID2_MAX_CRYPT_LEN) {
         id2_log_error("invalid input data length, %d.\n", in_len);
         return IROT_ERROR_EXCESS_DATA;
     }
 
-    ret = km_id2_dkey_encrypt(in, in_len, out, out_len);
+#if (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_AES)
+    block_len = ID2_AES_BLOCK_SIZE;
+    key_len = 32;
+#elif (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_SM4)
+    block_len = ID2_SM4_BLOCK_SIZE;
+    key_len = 16;
+#else
+    id2_log_error("not support this key type, %d\n", CONFIG_ID2_KEY_TYPE);
+    return IROT_ERROR_NOT_SUPPORTED;
+#endif
+
+    ret = id2_client_derive_key(seed, key, key_len);
     if (ret != IROT_SUCCESS) {
-        id2_log_error("id2 sym decrypt fail, 0x%x\n", ret);
+        id2_log_error("id2 derive key fail, %d\n", ret);
+        return ret;
     }
+
+    padding = block_len - in_len % block_len;
+    in_buf = ls_osa_malloc(in_len + padding);
+    if (in_buf == NULL) {
+        id2_log_error("out of mem, %d\n", in_len + padding);
+        ret = IROT_ERROR_OUT_OF_MEMORY;
+        goto _out;
+    }
+
+    memcpy(in_buf, in, in_len);
+    for (i = 0; i < padding; i++) {
+        in_buf[in_len + i] = padding;
+    }
+
+    in_len += padding;
+    if (*out_len < in_len) {
+        id2_log_error("short buffer, %d %d\n", out_len, in_len);
+        ret = IROT_ERROR_SHORT_BUFFER;
+        goto _out;
+    } else {
+        *out_len = in_len;
+    }
+
+    ret = _id2_dkey_do_cipher(key, key_len, in_buf, in_len, out);
+    if (ret != IROT_SUCCESS) {
+        id2_log_error("id2 derived key cipher fail, %d\n", ret);
+        goto _out;
+    }
+
+_out:
+    if (in_buf != NULL) {
+        ls_osa_free(in_buf);
+    }
+
     return ret;
 }
 
@@ -1018,8 +1221,9 @@ _out:
 
 irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_len)
 {
-    uint32_t device_random[2];
-    uint8_t random_str[ID2_MAX_DEVICE_RANDOM_LEN + 1];
+    uint32_t random_str_len = 0;
+    uint8_t temp[ID2_MAX_DEVICE_RANDOM_LEN];
+    uint8_t *random_str = NULL;
 
     id2_log_debug("[id2_client_get_device_challenge enter.]\n");
 
@@ -1033,20 +1237,29 @@ irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
-    id2_plat_get_random((uint8_t*)&device_random, sizeof(device_random));
-    if (ls_osa_snprintf((char*)random_str, ID2_MAX_DEVICE_RANDOM_LEN + 1,
-               "%08X%08X", device_random[0], device_random[1]) < 0) {
-        id2_log_error("device random format exchange error.\n");
-        return IROT_ERROR_GENERIC;
-    }
-
     if (*random_len > ID2_MAX_DEVICE_RANDOM_LEN) {
         *random_len = ID2_MAX_DEVICE_RANDOM_LEN;
     }
 
+    random_str_len = 2 * ID2_MAX_DEVICE_RANDOM_LEN + 1;
+    random_str = ls_osa_malloc(random_str_len);
+    if (random_str == NULL) {
+        id2_log_error("out of mem, %d\n", random_str_len);
+        return IROT_ERROR_OUT_OF_MEMORY;
+    } else {
+        memset(random_str, 0, random_str_len);
+    }
+
+    id2_plat_get_random(temp, ID2_MAX_DEVICE_RANDOM_LEN);
+
+    id2_hex_to_string(temp, ID2_MAX_DEVICE_RANDOM_LEN, random_str, &random_str_len);
+
+    id2_log_debug("device chanllenge, %s %d\n", random_str, random_str_len);
+
     memcpy(random, random_str, *random_len);
-    memcpy(s_device_random, random_str, *random_len);
-    s_device_random_len = *random_len;
+
+    ls_osa_free(random_str);
+    random_str = NULL;
 
     return IROT_SUCCESS;
 }
@@ -1082,8 +1295,8 @@ irot_result_t id2_client_verify_server(
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
-    if (device_random != NULL && device_random_len == 0) {
-        id2_log_error("invalid device random length.\n");
+    if (device_random == NULL || device_random_len == 0) {
+        id2_log_error("invalid device random.\n");
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
@@ -1091,12 +1304,6 @@ irot_result_t id2_client_verify_server(
         server_extra != NULL && server_extra_len == 0)) {
         id2_log_error("invalid server extra length, %d.\n", server_extra_len);
         return IROT_ERROR_EXCESS_DATA;
-    }
-
-    /* get the real device random */
-    if (device_random == NULL) {
-        device_random = s_device_random;
-        device_random_len = s_device_random_len;
     }
 
     if (device_random_len > ID2_MAX_DEVICE_RANDOM_LEN) {
@@ -1259,6 +1466,13 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
 
     id2_log_info("seed: %s\n", seed);
 
+#if (CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_3DES && \
+     CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_AES  && \
+     CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_SM4)
+     id2_log_info("not support id2 asymmetric key type\n");
+     return IROT_ERROR_NOT_SUPPORTED;
+#endif
+
     sign_len = sizeof(sign_buf);
     ret = _id2_sign((uint8_t*)seed, in_len, sign_buf, &sign_len);
     if (ret != IROT_SUCCESS) {
@@ -1275,7 +1489,7 @@ irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t*
 
     id2_log_hex_dump("id2 hash output:", out_buf, out_len);
 
-    hex_to_string(out_buf, out_len, secret, secret_len);
+    id2_hex_to_string(out_buf, out_len, secret, secret_len);
 
     id2_log_debug("secret: %s\n", secret);
 
@@ -1291,6 +1505,7 @@ irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key
     uint8_t *in_buf = NULL;
     uint32_t in_len;
     uint32_t out_len;
+    uint32_t seed_len;
     uint32_t sign_len;
     uint32_t id_len = ID2_ID_MAX_LEN;
 
@@ -1311,17 +1526,20 @@ irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
-    in_len = strlen(seed);
-    if (in_len == 0) {
-        id2_log_error("seed is null.\n");
-        return IROT_ERROR_BAD_PARAMETERS;
-    }
-    if (in_len > ID2_MAX_SEED_LEN) {
+    seed_len = strlen(seed);
+    if (seed_len > ID2_MAX_SEED_LEN) {
         id2_log_error("seed is excess data.\n");
         return IROT_ERROR_EXCESS_DATA;
     }
 
-    id2_log_info("seed: %s\n", seed);
+    id2_log_info("seed: %s\n", seed_len == 0 ? "NULL" : seed);
+
+#if (CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_3DES && \
+     CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_AES  && \
+     CONFIG_ID2_KEY_TYPE != ID2_KEY_TYPE_SM4)
+     id2_log_info("not support id2 asymmetric key type\n");
+     return IROT_ERROR_NOT_SUPPORTED;
+#endif
 
     ret = id2_client_get_id(id2_str, &id_len);
     if (ret != IROT_SUCCESS) {
@@ -1329,14 +1547,14 @@ irot_result_t id2_client_derive_key(const char* seed, uint8_t* key, uint32_t key
         goto _out;
     }
 
-    in_len = id_len + strlen(seed);
+    in_len = id_len + seed_len;
     in_buf = ls_osa_malloc(in_len);
     if (in_buf == NULL) {
         id2_log_error("out of mem, %d\n", in_len);
         return IROT_ERROR_OUT_OF_MEMORY;
     } else {
         memcpy(in_buf, id2_str, id_len);
-        memcpy(in_buf + id_len, seed, strlen(seed));
+        memcpy(in_buf + id_len, seed, seed_len);
     }
 
     sign_len = sizeof(sign_buf);
@@ -1395,6 +1613,11 @@ irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const ch
         id2_log_error("key type error, %d\n", key_type);
         return IROT_ERROR_BAD_PARAMETERS;
     }
+#elif (CONFIG_ID2_KEY_TYPE == ID2_KEY_TYPE_SM4)
+    if (key_type != 0x03) {
+        id2_log_error("key type error, %d\n", key_type);
+        return IROT_ERROR_BAD_PARAMETERS;
+    }
 #else
     {
         id2_log_error("not support this key type, %d\n", key_type);
@@ -1412,7 +1635,7 @@ irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const ch
         return IROT_ERROR_OUT_OF_MEMORY;
     }
 
-    ret = string_to_hex((const uint8_t*)key_value, key_len, key_data, &key_len);
+    ret = id2_string_to_hex((const uint8_t*)key_value, key_len, key_data, &key_len);
     if (ret < 0) {
         id2_log_error("id2 key string to hex error.\n");
         ls_osa_free(key_data);
@@ -1425,6 +1648,8 @@ irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const ch
         key_struct.type = KM_DES3;
     } else if (key_type == 0x02) {
         key_struct.type = KM_AES;
+    } else if (key_type == 0x03) {
+        key_struct.type = KM_SM4;
     }
 
     key_struct.sym_key.key_bit = key_len << 3;
@@ -1455,5 +1680,19 @@ irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const ch
 
     return IROT_SUCCESS;
 }
+
+#else
+
+irot_result_t id2_client_set_id2_and_key(const char* id2, int key_type, const char* key_value)
+{
+    (void)id2;
+    (void)key_type;
+    (void)key_value;
+
+    id2_log_info("not supported\n");
+
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
 #endif
 

@@ -16,6 +16,8 @@ SRCS    += src/hal_sm2_test.c
 SRCS    += src/hal_rsa_test.c
 SRCS    += src/hal_hash_test.c
 SRCS    += src/hal_rand_test.c
+SRCS    += src/hal_sst_test.c
+SRCS    += src/hal_km_test.c
 
 OBJS    := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 

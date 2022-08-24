@@ -4,29 +4,35 @@
 
 #include "id2_test.h"
 
-/* Hex String, getting from id2 console */
-#define ID2_AUTH_CODE       ""
-#define ID2_CIPHER_DATA     ""
+#define SERVER_NAME     "itls.cn-shanghai.aliyuncs.com"
+#define SERVER_PORT     1883
 
-#if defined(CONFIG_ID2_DEBUG)
-#define ID2_ID     "0102030405060708090A0B0C"
-#define ID2_KEY    "0102030405060708090A0B0C0D0E0F101112131415161718"
-#endif
+#define PRODUCT_KEY     "a1WO4Z9qHRw"
+#define PRODUCT_SECRET  "i113XXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+/* Hex String, getting from id2 console */
+#define ID2_AUTH_CODE          ""
+#define ID2_CIPHER_DATA        ""
+
+static kpm_suite_t kpm_suite = {
+    /* user-defined index */
+    LS_KPM_KEY_IDX_INVALID,
+
+    /* kpm defined key info */
+    LS_KPM_KEY_INFO_AES_128,
+
+    /* import key data, getting from id2 console  */
+    ""
+};
 
 int main(int argc, char *argv[])
 {
     int ret;
-    bool is_prov;
+    uint32_t timeout_ms = 2000;
     uint32_t auth_code_len = 0;
     uint32_t cipher_len = 0;
     char *auth_code = ID2_AUTH_CODE;
     char *cipher_data = ID2_CIPHER_DATA;
-
-    ret = id2_client_unit_test();
-    if (ret < 0) {
-        ID2_DBG_LOG("id2 client unit test fail!!\n");
-        return -1;
-    }
 
     /* 1. id2 client init */
     ret = id2_client_init();
@@ -35,21 +41,27 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    /* 2. check if id2 exist in device */
-    ret = id2_client_get_prov_stat(&is_prov);
-    if (ret != IROT_SUCCESS) {
-        ID2_DBG_LOG("id2 client get prov stat fail, %d\r\n", ret);
+    /* 2. check if id2 has been provisioned or not, if not, request id2 from itls server */
+    ret = id2_client_wrap_do_provisioning(SERVER_NAME,
+                     SERVER_PORT, PRODUCT_KEY, PRODUCT_SECRET, timeout_ms);
+    if (ret == IROT_ERROR_NOT_SUPPORTED) {
+        /* do nothing */
+    } else if (ret != IROT_SUCCESS) {
+        ID2_DBG_LOG("id2 client do provisioning fail, %d\n", ret);
         goto _out;
-    }
+    } else {
+        /* reach here, meaning that id2 has been provisioned */
 
-    if (is_prov == false) {
-        ID2_DBG_LOG("no id2 in device, need to prov first!!\n");
-        ret = -1;
-        goto _out;
+        /* id2 client function testing */
+        ret = id2_client_unit_test();
+        if (ret < 0) {
+            ID2_DBG_LOG("id2 client unit test fail!!\n");
+            goto _out;
+        }
     }
 
     /* 3. generate authcode */
-    ret = id2_client_generate_authcode();
+    ret = id2_client_generate_authcode(&kpm_suite);
     if (ret < 0) {
         ID2_DBG_LOG("id2 client generate authcode fail!!\n");
         goto _out;
@@ -75,8 +87,15 @@ int main(int argc, char *argv[])
         }
     }
 
+    /* 6. id2 kpm testing if needed */
+    ret = id2_client_kpm_test(kpm_suite.key_idx, kpm_suite.key_info, kpm_suite.import_data);
+    if (ret < 0) {
+        ID2_DBG_LOG("id2 client kpm test fail!!\n");
+        return -1;
+    }
+
 _out:
-    /* 6. id2 client cleanup */
+    /* 7. id2 client cleanup */
     id2_client_cleanup();
 
     return ret;

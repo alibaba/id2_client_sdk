@@ -40,6 +40,7 @@
 
 #define TLS_PARAM_MAGIC       (0x54321213)
 #define SEND_TIMEOUT_SECONDS  (10)
+#define RECV_TIMEOUT_SECONDS  (20)
 
 typedef struct _tls_param_t {
     uint32_t magic;           /* itls param magic */
@@ -109,6 +110,7 @@ static int mbedtls_net_connect_timeout(mbedtls_net_context *ctx,
 
         if (0 != setsockopt(ctx->fd, SOL_SOCKET, SO_SNDTIMEO, &sendtimeout, sizeof(sendtimeout))) {
             SSL_DBG_LOG("setsockopt fail errno, %d\n", errno);
+            close(ctx->fd);
             ret = MBEDTLS_ERR_NET_CONNECT_FAILED;
             break;
         }
@@ -253,7 +255,7 @@ uintptr_t hal_itls_establish_timeout(
     /*
      * 2. Setup stuff
      */
-    SSL_DBG_LOG("  . Setting up the SSL/TLS structure...");
+    SSL_DBG_LOG("  . Setting up the SSL/TLS structure...\n");
     if ((ret = mbedtls_ssl_config_defaults(&param->conf,
                     MBEDTLS_SSL_IS_CLIENT,
                     MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -265,6 +267,9 @@ uintptr_t hal_itls_establish_timeout(
 
     mbedtls_ssl_conf_rng(&param->conf, _tls_random, NULL );
     mbedtls_ssl_conf_dbg(&param->conf, _tls_debug, NULL );
+
+    /* set socket recv timeout */
+    mbedtls_ssl_conf_read_timeout(&param->conf, RECV_TIMEOUT_SECONDS * 1000);
 
     /* extra data for authentication */
     if ((ret = mbedtls_ssl_conf_auth_extra(
@@ -298,7 +303,7 @@ uintptr_t hal_itls_establish_timeout(
     /*
      * 3. Handshake
      */
-    SSL_DBG_LOG("  . Performing the SSL/TLS handshake...");
+    SSL_DBG_LOG("  . Performing the SSL/TLS handshake...\n");
     while ((ret = mbedtls_ssl_handshake(&param->ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
             SSL_DBG_LOG(" failed\n  ! mbedtls_ssl_handshake returned -0x%04x\n", -ret);

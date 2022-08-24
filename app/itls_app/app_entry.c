@@ -14,7 +14,7 @@
 #define PRODUCT_SECRET  "i11xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #else
 #define PRODUCT_KEY     "a1WO4Z9qHRw"
-#define PRODUCT_SECRET  "i113xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+#define PRODUCT_SECRET  "i11xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #endif
 
 extern int itls_client_sample(
@@ -25,7 +25,7 @@ extern int idtls_client_sample(
 int main(int argc, char *argv[])
 {
     int ret;
-    uint32_t i, loop_count = 1;
+    uint32_t i, loop_count = 10000;
 
     printf("===========> iTLS Client Sample start.\n");
 

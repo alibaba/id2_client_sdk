@@ -236,7 +236,7 @@ int mbedtls_write_auth_code_ext(
                   ssl->conf->auth_token, ssl->conf->auth_token_len,
                   auth_code, &auth_code_len);
         if (ret != 0) {
-            SSL_DBG_LOG("id2_clien _get_otp_auth_code fail, %d\n", ret);
+            SSL_DBG_LOG("id2_client_get_otp_auth_code fail, %d\n", ret);
             return -1;
         }
     }

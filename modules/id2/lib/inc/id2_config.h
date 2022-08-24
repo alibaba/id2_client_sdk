@@ -5,8 +5,6 @@
 #ifndef __ID2_CONFIG_H__
 #define __ID2_CONFIG_H__
 
-#if !defined(CONFIG_ID2_MDU)
-
 ////////////////////////////////////////////////////////////////////////////////
 
 #define ID2_KEY_TYPE_NON                0
@@ -60,22 +58,6 @@
 #define CONFIG_ID2_OTP_X_MODE
 #endif
 #endif
-
-////////////////////////////////////////////////////////////////////////////////
-
-#else  /* CONFIG_ID2_MDU */
-
-#define ID2_MDU_TYPE_QUECTEL     1
-
-#ifndef CONFIG_ID2_MDU_TYPE
-#define CONFIG_ID2_MDU_TYPE      ID2_MDU_TYPE_QUECTEL
-#endif
-
-#if (CONFIG_ID2_MDU_TYPE != ID2_MDU_TYPE_QUECTEL)
-#error "CONFIG_ID2_MDU_TYPE error."
-#endif
-
-#endif /* CONFIG_ID2_MDU */
 
 ////////////////////////////////////////////////////////////////////////////////
 

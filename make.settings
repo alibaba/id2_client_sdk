@@ -4,9 +4,9 @@
 CONFIG_LS_ID2_DEBUG     := N
 
 # ID2 Field Provisioning
-CONFIG_LS_ID2_OTP       := N
+CONFIG_LS_ID2_OTP       := Y
 
-# ID2 Root of Trust Type, SE|Demo|MDU|PUF
+# ID2 Root of Trust Type, SE|Demo|MDU|PUF|KM
 CONFIG_LS_ID2_ROT_TYPE  := Demo
 
 # ID2 Key Type, 3DES|AES|RSA|ECC|SM1|SM2|SM4

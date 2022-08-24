@@ -57,8 +57,7 @@ OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 OUT := ../libkm.a
 
 $(OUT): $(OBJS)
-	$(AR) rc $(OUT) $(OBJS)
-	$(RANLIB) $(OUT)
+	$(AR) -r $(OUT) $(OBJS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $*.o
 

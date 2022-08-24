@@ -312,14 +312,9 @@ _out:
     return ret;
 }
 
-#if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_3DES || \
-     CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_AES  || \
-     CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM1  || \
-     CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_SM4)
-
 irot_result_t irot_hal_sym_crypto(key_object* key_obj, uint8_t key_id,
-                                  const uint8_t* iv, uint32_t iv_len,
-                                  const uint8_t* in, uint32_t in_len,
+                                  uint8_t* iv, uint32_t iv_len,
+                                  uint8_t* in, uint32_t in_len,
                                   uint8_t* out, uint32_t* out_len,
                                   sym_crypto_param_t* crypto_param)
 {
@@ -402,7 +397,7 @@ _out:
     return ret ;
 }
 
-#elif (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_RSA)
+#if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_RSA)
 
 static irot_result_t asym_crypto(uint8_t mode, uint8_t cipher_type, uint8_t key_id,
                           const uint8_t* in_data, uint32_t in_len, uint8_t* out_buf, uint32_t* out_len)
@@ -479,7 +474,7 @@ _out:
 }
 
 irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
-                                      const uint8_t* in, uint32_t in_len,
+                                      uint8_t* in, uint32_t in_len,
                                       uint8_t* sign, uint32_t* sign_len, asym_sign_verify_t type)
 {
     irot_result_t ret;
@@ -505,7 +500,7 @@ irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
 }
 
 irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
-                                         const uint8_t* in, uint32_t in_len,
+                                         uint8_t* in, uint32_t in_len,
                                          uint8_t* out, uint32_t* out_len,
                                          irot_asym_padding_t padding)
 {
@@ -513,7 +508,7 @@ irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
     uint8_t mode = MODE_ASYMM_DECRYPT;
     uint8_t cipher_type;
 
-    if (padding != ASYM_PADDING_PKCS1) {
+    if (padding != ASYM_RSA_PADDING_PKCS1) {
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
@@ -600,7 +595,7 @@ _out:
 }
 
 irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
-                                      const uint8_t* in, uint32_t in_len,
+                                      uint8_t* in, uint32_t in_len,
                                       uint8_t* sign, uint32_t* sign_len, asym_sign_verify_t type)
 {
     irot_result_t ret;
@@ -619,7 +614,7 @@ irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
 }
 
 irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
-                                         const uint8_t* in, uint32_t in_len,
+                                         uint8_t* in, uint32_t in_len,
                                          uint8_t* out, uint32_t* out_len,
                                          irot_asym_padding_t padding)
 {
@@ -627,7 +622,7 @@ irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
     uint8_t mode = MODE_ASYMM_DECRYPT;
     uint8_t cipher_type;
 
-    if (padding != ASYM_PADDING_NOPADDING) {
+    if (padding != ASYM_SM2_NOPADDING) {
         return IROT_ERROR_BAD_PARAMETERS;
     }
 
@@ -636,10 +631,25 @@ irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
 
     return ret;
 }
+#else
+irot_result_t irot_hal_asym_priv_sign(key_object* key_obj, uint8_t key_id,
+                                      uint8_t* in, uint32_t in_len,
+                                      uint8_t* sign, uint32_t* sign_len, asym_sign_verify_t type)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
+irot_result_t irot_hal_asym_priv_decrypt(key_object* key_obj, uint8_t key_id,
+                                         uint8_t* in, uint32_t in_len,
+                                         uint8_t* out, uint32_t* out_len,
+                                         irot_asym_padding_t padding)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
+}
 
 #endif  /* CONFIG_CHIP_KEY_TYPE */
 
-irot_result_t irot_hal_hash_sum(const uint8_t* in, uint32_t in_len,
+irot_result_t irot_hal_hash_sum(uint8_t* in, uint32_t in_len,
                                 uint8_t* out, uint32_t* out_len, hash_t type)
 {
     irot_result_t ret;
@@ -741,6 +751,26 @@ irot_result_t irot_hal_hash_sum(const uint8_t* in, uint32_t in_len,
     }
 _out:
     return ret;
+}
+
+irot_result_t irot_hal_import_keyring(uint8_t key_id, hal_keyring_t *keyring)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
+irot_result_t irot_hal_get_key_type(uint8_t key_id, hal_key_type_t *key_type)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
+irot_result_t irot_hal_get_prov_state(uint8_t key_id, uint32_t *state)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
+irot_result_t irot_hal_delete_key(uint8_t key_id)
+{
+    return IROT_ERROR_NOT_SUPPORTED;
 }
 
 #endif  /* CONFIG_CHIP_TYPE */

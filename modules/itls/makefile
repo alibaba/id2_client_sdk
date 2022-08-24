@@ -28,15 +28,19 @@ SRCS += src/ssl_ciphersuites.c
 SRCS += src/mbedtls_auth.c
 SRCS += src/net_sockets.c
 SRCS += src/mbedtls_alt.c
+
+ifeq ($(BUILD_SYS), __LINUX__)
 SRCS += src/hal_itls.c
+else ifeq ($(BUILD_SYS), __ANDROID__)
+SRCS += src/hal_itls.c
+endif
 
 OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
 OUT := libitls.a
 
 $(OUT): $(OBJS)
-	$(AR) rc $(OUT) $(OBJS)
-	$(RANLIB) $(OUT)
+	$(AR) -r $(OUT) $(OBJS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $*.o
 

@@ -2,6 +2,7 @@ include ../../../make.rules
 include ../../../make.settings
 
 CHIP_NAME := template
+#CHIP_NAME := demo
 
 CFLAGS  += -I../../../include/osa
 CFLAGS  += -I../../../include/irot
@@ -28,19 +29,24 @@ CFLAGS  += -DCONFIG_CHIP_KEY_TYPE=CHIP_KEY_TYPE_NON
 endif
 
 SRCS    := src/core/km_to_irot.c
-SRCS    += src/core/mtk_se_adapter.c
-SRCS    += src/core/std_se_adapter.c
 SRCS    += src/log/chip_log.c
 
-SRCS    += chipset/$(CHIP_NAME)/se_driver/se_driver.c
+ifeq ($(CHIP_NAME), template)
+CFLAGS += -DCONFIG_CHIP_TYPE=CHIP_TYPE_SE_STD_CMD
+SRCS    += src/core/std_se_adapter.c
+SRCS    += chipset/template/se_driver/se_driver.c
+else ifeq ($(CHIP_NAME), demo)
+CFLAGS += -DCONFIG_CHIP_TYPE=CHIP_TYPE_SE_STD_HAL
+CFLAGS  += -I$(TOP)/include/icrypto
+SRCS    += chipset/demo/irot_hal.c
+endif
 
 OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
 OUT := ../libkm.a
 
 $(OUT): $(OBJS)
-	$(AR) rc $(OUT) $(OBJS)
-	$(RANLIB) $(OUT)
+	$(AR) -r $(OUT) $(OBJS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $*.o
 

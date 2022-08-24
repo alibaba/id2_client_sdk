@@ -34,7 +34,10 @@ CFLAGS  += -DCONFIG_ID2_KEY_TYPE=ID2_KEY_TYPE_NON
 endif
 
 SRCS += src/id2_client.c
+SRCS += src/id2_dpm.c
+SRCS += src/id2_kpm.c
 SRCS += src/id2_otp.c
+SRCS += src/id2_wrap.c
 SRCS += src/id2_plat.c
 SRCS += src/id2_util.c
 
@@ -43,8 +46,7 @@ OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 OUT := ../libid2.a
 
 $(OUT): $(OBJS)
-	$(AR) rc $(OUT) $(OBJS)
-	$(RANLIB) $(OUT)
+	$(AR) -r $(OUT) $(OBJS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $*.o
 

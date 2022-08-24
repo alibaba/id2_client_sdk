@@ -57,6 +57,49 @@
 #include "id2_client.h"
 
 static unsigned int message_alert_type = 0;
+
+static void mbedtls_id2_print_error(int type)
+{
+    if (type == 160) {
+        SSL_DBG_LOG("ID2 - id2 generic error\n");
+    } else if (type == 161) {
+        SSL_DBG_LOG("ID2 - id2 no quota\n");
+    } else if (type == 162) {
+        SSL_DBG_LOG("ID2 - id2 is not exist\n");
+    } else if (type == 163) {
+        SSL_DBG_LOG("ID2 - id2 authcode is invaid\n");
+    } else if (type == 164) {
+        SSL_DBG_LOG("ID2 - id2 has not been activated\n");
+    } else if (type == 165) {
+        SSL_DBG_LOG("ID2 - the the timestamp used in authcode is expired\n");
+    } else if (type == 166) {
+        SSL_DBG_LOG("ID2 - id2 challenge is invalid\n");
+    } else if (type == 167) {
+        SSL_DBG_LOG("ID2 - not support this operation\n");
+    } else if (type == 168) {
+        SSL_DBG_LOG("ID2 - id2 has been suspended\n");
+    } else if (type == 169) {
+        SSL_DBG_LOG("ID2 - id2 has been discarded\n");
+    } else if (type == 170) {
+        SSL_DBG_LOG("ID2 - permission denied, id2 has been binded to other product key\n");
+    } else if (type == 171) {
+        SSL_DBG_LOG("ID2 - product key is invalid\n");
+    } else if (type == 172) {
+        SSL_DBG_LOG("ID2 - Product key is not exist\n");
+    } else if (type == 173) {
+        SSL_DBG_LOG("ID2 - id2 server is busy\n");
+    } else if (type == 174) {
+        SSL_DBG_LOG("ID2 - the device fingerprint is invalid\n");
+    } else if (type == 175) {
+        SSL_DBG_LOG("ID2 - the device fingerprint is duplicated\n");
+    } else if (type == 176) {
+        SSL_DBG_LOG("ID2 - id2 server random is invalid\n");
+    } else if (type == 177) {
+        SSL_DBG_LOG("ID2 - hash type used in authcode generated is invalid\n");
+    } else if (type == 178) {
+        SSL_DBG_LOG("ID2 - id2 key type is invalid\n");
+    }
+}
 #endif
 
 /* Implementation that should never be optimized out by the compiler */
@@ -4192,6 +4235,11 @@ int mbedtls_ssl_handle_message_type( mbedtls_ssl_context *ssl )
 
         SSL_DBG_LOG( "got an alert message, type: [%d:%d]\n",
                       ssl->in_msg[0], ssl->in_msg[1] );
+
+        /* only print fatal error */
+        if (ssl->in_msg[0] == MBEDTLS_SSL_ALERT_LEVEL_FATAL) {
+            mbedtls_id2_print_error(message_alert_type);
+        }
 #else
         MBEDTLS_SSL_DEBUG_MSG( 2, ( "got an alert message, type: [%d:%d]",
                        ssl->in_msg[0], ssl->in_msg[1] ) );

@@ -20,30 +20,31 @@
 #define id2_log_error(_f, ...)	                    ls_osa_print("%s %d: %s: " _f,\
                                                             __FUNCTION__, __LINE__, "ERROR", ##__VA_ARGS__)
 
-#if !defined(CONFIG_ID2_MDU)
-
 #define ID2_KEY_NAME          "id2_key"
 #define ID2_KEY_NAME_LEN       7
 
+#define ID2_AES_IV_LEN         16
+#define ID2_SM4_IV_LEN         16
+
 enum
 {
-    DES_BLOCK_SIZE	= 0x08,
-    AES_BLOCK_SIZE	= 0x10,
-    RSA_BLOCK_SIZE      = 0x80,
-    SM1_BLOCK_SIZE      = 0x10,
-    SM4_BLOCK_SIZE      = 0x10,
+    ID2_DES_BLOCK_SIZE	= 0x08,
+    ID2_AES_BLOCK_SIZE	= 0x10,
+    ID2_RSA_BLOCK_SIZE  = 0x80,
+    ID2_SM1_BLOCK_SIZE  = 0x10,
+    ID2_SM4_BLOCK_SIZE  = 0x10,
 };
 
-int is_hex_char(char c);
-int hex_to_char(uint8_t hex);
-int char_to_hex(char c);
+int is_id2_client_inited(void);
 
-int hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len);
-int string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len);
+int id2_is_hex_char(char c);
+int id2_hex_to_char(uint8_t hex);
+int id2_char_to_hex(char c);
+
+int id2_hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len);
+int id2_string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len);
 
 void id2_log_hex_dump(const char* name, const uint8_t* data, uint32_t len);
-
-#endif  /* CONFIG_ID2_MDU */
 
 #endif  /* __ID2_PRIV_H__ */
 

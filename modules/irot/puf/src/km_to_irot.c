@@ -64,6 +64,11 @@ void km_cleanup()
     irot_hal_cleanup();
 }
 
+uint32_t km_get_irot_type(void)
+{
+    return KM_IROT_TYPE_PUF;
+}
+
 uint32_t km_get_id2(uint8_t* id2, uint32_t* len)
 {
     int ret;
@@ -289,8 +294,26 @@ uint32_t km_get_id2_state(uint32_t *state)
     return KM_ERR_NOT_SUPPORTED;
 }
 
-uint32_t km_id2_dkey_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len)
+uint32_t km_get_prov_state(const char *name, uint32_t name_len, uint32_t *state)
 {
     return KM_ERR_NOT_SUPPORTED;
 }
+
+uint32_t km_get_key_type(const char *name, uint32_t name_len, km_key_type *key_type)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_import_keyring(const char *name, uint32_t name_len,
+                       km_keyring_t *keyring)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
+uint32_t km_export_key(const char *name, uint32_t name_len, km_format_t format,
+                   uint8_t *export_data, size_t *export_data_len)
+{
+    return KM_ERR_NOT_SUPPORTED;
+}
+
 

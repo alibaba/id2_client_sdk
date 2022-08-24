@@ -1,9 +1,422 @@
 
+CLANG_PATH := /disk2/cedar.wxs/toolchains/clang
+
+ifeq ($(plat), )
+plat = x86_64
+endif
+
+ifeq ($(plat), arm64-v8a)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/android-ndk-r16b
+CROSS_COMPILE=${TOOLCHAIN_PATH}/toolchains/aarch64-linux-android-4.9/prebuilt/linux-x86_64/bin/aarch64-linux-android-
+
+else ifeq ($(plat), armeabi-v7a)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/android-ndk-r16b
+CROSS_COMPILE=${TOOLCHAIN_PATH}/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-
+
+else ifeq ($(plat), armel)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-linaro-6.5.0_arm-linux-gnueabi
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/arm-linux-gnueabi-
+
+else ifeq ($(plat), armhf)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-linaro-6.5.0_arm-linux-gnueabihf
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/arm-linux-gnueabihf-
+
+else ifeq ($(plat), aarch64)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-linaro-6.5.0_aarch64-linux-gnu
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/aarch64-linux-gnu-
+
+else ifeq ($(plat), mips)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/mips-gcc540-glibc222-64bit
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/mips-linux-uclibc-gnu-
+
+else ifeq ($(plat), rk818)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/linux-x86/aarch64/toolchain-sunxi-glibc/toolchain
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/aarch64-openwrt-linux-gnu-
+
+export STAGING_DIR=$STAGING_DIR:${TOOLCHAIN_PATH}/bin
+
+
+else ifeq ($(plat), himix200)
+TOOLCHAIN_PATH := /opt/hisi-linux/x86-arm/arm-himix200-linux
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/arm-himix200-linux-
+
+else ifeq ($(plat), RV1109)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/arm-linux-gnueabihf-
+
+else ifeq ($(plat), WQ5007)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-riscv64-unknown-elf
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/riscv64-unknown-elf-
+
+else ifeq ($(plat), AW_D1)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-riscv64-glibc-thead
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/riscv64-unknown-linux-gnu-
+
+else ifeq ($(plat), mk3080)
+TOOLCHAIN_PATH := /disk2/cedar.wxs/toolchains/gcc-arm-none-eabi
+CROSS_COMPILE=${TOOLCHAIN_PATH}/bin/arm-none-eabi-
+
+else
 CROSS_COMPILE :=
+endif
 
 CC      := ${CROSS_COMPILE}gcc
+CXX     := ${CROSS_COMPILE}g++
 AR      := ${CROSS_COMPILE}ar
+STRIP   := ${CROSS_COMPILE}strip
 RANLIB  := ${CROSS_COMPILE}ranlib
+CLANG   := $(CLANG_PATH)/bin/clang
+
+ifeq ($(plat), x86_32)
+
+OCFLAGS := -Wdeclaration-after-statement
+CFLAGS  := -Wall -Os -ffunction-sections -fdata-sections -m32 -fPIC
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += -lrt -pthread
+LDFLAGS += -fPIC -fPIE
+LDFLAGS += -m32
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+UILD_CLANG := yes
+
+else ifeq ($(plat), x86_64)
+
+OCFLAGS := -Wdeclaration-after-statement
+CFLAGS  := -Wall -Os -ffunction-sections -fdata-sections -fPIC
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += -lrt -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), linuxhost)
+
+OCFLAGS := -Wdeclaration-after-statement
+CFLAGS  := -Wall -Os -ffunction-sections -fdata-sections -fPIC
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += -lrt -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), arm64-v8a)
+
+CLANG_FLAGS := -gcc-toolchain $(TOOLCHAIN_PATH)/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64 -target aarch64-none-linux-android
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS := -Wall -Os -fPIC
+CFLAGS += --sysroot $(TOOLCHAIN_PATH)/sysroot
+CFLAGS += -D__ANDROID_API__=23
+CFLAGS += -isystem  $(TOOLCHAIN_PATH)/sysroot/usr/include/aarch64-linux-android
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++/include
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++abi/include
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/android/support/include
+CFLAGS += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/libc++_static.a
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++abi/../llvm-libc++/libs/arm64-v8a/libc++abi.a
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/android/support/../../cxx-stl/llvm-libc++/libs/arm64-v8a/libandroid_support.a
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/platforms/android-21/arch-arm64
+LDFLAGS += -latomic -Wl,--exclude-libs,libatomic.a
+LDFLAGS += -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings
+LDFLAGS += -Wl,--hash-style=sysv
+LDFLAGS += -llog -landroid -lm
+
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __ANDROID__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), armeabi-v7a)
+
+CLANG_FLAGS := -gcc-toolchain $(TOOLCHAIN_PATH)/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64 -target armv7a-linux-eabi
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS := -Wall -Os -fPIC
+CFLAGS += --sysroot $(TOOLCHAIN_PATH)/sysroot
+CFLAGS += -D__ANDROID_API__=23
+CFLAGS += -isystem  $(TOOLCHAIN_PATH)/sysroot/usr/include/arm-linux-androideabi
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++/include
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++abi/include
+CFLAGS += -I$(TOOLCHAIN_PATH)/sources/android/support/include
+CFLAGS += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_static.a
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libunwind.a
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/cxx-stl/llvm-libc++abi/../llvm-libc++/libs/armeabi-v7a/libc++abi.a
+LDFLAGS += $(TOOLCHAIN_PATH)/sources/android/support/../../cxx-stl/llvm-libc++/libs/armeabi-v7a/libandroid_support.a
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/platforms/android-21/arch-arm
+LDFLAGS += -latomic -Wl,--exclude-libs,libatomic.a
+LDFLAGS += -Wl,--no-undefined -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -Wl,--warn-shared-textrel -Wl,--fatal-warnings
+LDFLAGS += -Wl,--hash-style=sysv
+LDFLAGS += -llog -landroid -lm
+
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __ANDROID__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), armel)
+CLANG_FLAGS := -target armv7a-linux-eabi
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabi/libc
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabi/libc
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), armhf)
+CLANG_FLAGS := -target armv7a-linux-eabi
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -mfpu=vfp -mfloat-abi=hard -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabihf/libc
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabihf/libc
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), aarch64)
+CLANG_FLAGS := -target aarch64-none-linux-android
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -march=armv8-a -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/aarch64-linux-gnu/libc
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/aarch64-linux-gnu/libc
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), mips)
+CLANG_FLAGS := -v -integrated-as -target mips-openwrt-linux-uclibc
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -Wfatal-errors -fsigned-char -EL
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/mips-linux-gnu/libc
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/mips-linux-gnu/libc
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), rk818)
+CLANG_FLAGS := -target aarch64-none-linux-android
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -march=armv8-a -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS := --sysroot $(TOOLCHAIN_PATH)/lib
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), himix200)
+CLANG_FLAGS := -target armv7a-linux-eabi
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -march=armv7-a -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot ${TOOLCHAIN_PATH}/target
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS := --sysroot $(TOOLCHAIN_PATH)/target
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __LINUX__
+
+BUILD_BIN   := yes
+BUILD_CLANG := yes
+
+else ifeq ($(plat), RV1109)
+CLANG_FLAGS := -target armv7a-linux-eabi
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -fPIC
+CFLAGS  += -ffunction-sections -fdata-sections
+CFLAGS  += -mtune=cortex-a7 -mfpu=neon-vfpv4 -march=armv7-a -Wfatal-errors -fsigned-char
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabihf/libc
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/arm-linux-gnueabihf/libc
+LDFLAGS += -pthread
+LDFLAGS += -fPIC -fPIE
+
+BUILD_SYS   := __RTOS__
+
+BUILD_BIN   := yes
+BUILD_CLANG := no
+
+else ifeq ($(plat), AW_D1)
+CLANG_FLAGS := -target riscv64-unknown-elf
+
+OCFLAGS := -Wdeclaration-after-statement
 
 CFLAGS  := -Wall -Os -Wdeclaration-after-statement -ffunction-sections -fdata-sections -fPIC
+CFLAGS  += -march=rv64gcxthead -mabi=lp64 -fno-strict-aliasing -fno-omit-frame-pointer
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/sysroot
+CFLAGS  += -fvisibility=hidden
+
+LDFLAGS := -Wall -Os -Wdeclaration-after-statement -ffunction-sections -fdata-sections -fPIC
+LDFLAGS += -march=rv64gcxthead -mabi=lp64 -fno-strict-aliasing -fno-omit-frame-pointer
+LDFLAGS += --sysroot $(TOOLCHAIN_PATH)/sysroot
+LDFLAGS += -fPIC -fPIE
+
+LDFLAGS += -lrt -pthread
+
+BUILD_SYS   := __LINUX__
+
+BUILD_RLW   := yes
+
+BUILD_BIN   := yes
+BUILD_CLANG := no
+
+else ifeq ($(plat), linuxhost)
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -Wall -Os -ffunction-sections -fdata-sections -m32 -fPIC
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+LDFLAGS += -lrt -pthread
+LDFLAGS += -fPIC -fPIE
+LDFLAGS += -m32
+
+BUILD_SYS   := __RTOS__
+
+BUILD_BIN   := no
+BUILD_CLANG := yes
+
+else ifeq ($(plat), mk3080)
+CLANG_FLAGS := -target armv7m-none-eabi -mcpu=cortex-m4 -march=armv7-m
+
+OCFLAGS := -Wdeclaration-after-statement
+
+CFLAGS  := -mcpu=cortex-m4 -mlittle-endian
+CFLAGS  += -Wall -Werror -Wno-unused-parameter -Wno-implicit-function-declaration
+CFLAGS  += -Wno-type-limits -Wno-sign-compare -Wno-pointer-sign -Wno-uninitialized
+CFLAGS  += -Wno-return-type -Wno-unused-function
+CFLAGS  += -Wno-unused-value -Wno-strict-aliasing
+
+CFLAGS  += --sysroot $(TOOLCHAIN_PATH)/arm-none-eabi
+CFLAGS  += -fvisibility=hidden
+
+CCFLAGS := -std=c++11
+
+BUILD_SYS   := __RTOS__
+
+BUILD_BIN   := no
+BUILD_CLANG := yes
+
+else ifeq ($(plat), asr1603)
+
+CROSS_COMPILE:=D:\Program Files\DS-5 v5.26.2\sw\ARMCompiler5.06u4\bin
+
+CC      := ${CROSS_COMPILE}\armcc
+AR      := ${CROSS_COMPILE}\armar
+
+CFLAGS  +=--cpu Cortex-R5  --no_unaligned_access -O2 --apcs /inter --gnu --thumb
+
+BUILD_SYS   := __RTOS__
+
+BUILD_BIN   := no
+BUILD_CLANG := no
+
+BUILD_WINS  := yes
+
+endif
 

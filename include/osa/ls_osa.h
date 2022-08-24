@@ -19,6 +19,11 @@
 #define LS_NET_TYPE_TCP     0
 #define LS_NET_TYPE_UDP     1
 
+#define LS_TIME_INFINITE    -1
+
+typedef void * ls_osa_sem_t;
+typedef void * ls_osa_thread_t;
+
 /**
  * @brief format and print data.
  *
@@ -151,6 +156,62 @@ int ls_osa_net_send(int fd, unsigned char *buf, size_t len, int *ret_orig);
  * @return: the actual amount recv, or -1 if error.
  */
 int ls_osa_net_recv(int fd, unsigned char *buf, size_t len, int timeout, int *ret_orig);
+
+/**
+ * @brief create a semaphore.
+ *
+ * @param init_val[in]: the initial value for the semaphore.
+ *
+ * @return the created semaphore if success; NULL if error.
+ */
+ls_osa_sem_t ls_osa_sem_create(uint32_t init_val);
+
+/**
+ * @brief destroy the created semaphore.
+ *
+ * @param sem[in]: pointer to the created semaphore.
+ */
+void ls_osa_sem_destroy(ls_osa_sem_t sem);
+
+/**
+ * @brief decrement the created semaphore.
+ *
+ * @param sem[in]: poniter to the created semaphore.
+ * @param time_ms[in]: the amount of miliseconds that should be blocked if
+ *                     the decrement can not be immediately performed.
+ *
+ * @note time_ms == LS_TIME_INFINITE, block until the decrement can proceed.
+ *
+ * @return 0 if success; < 0 if error.
+ */
+int ls_osa_sem_wait(ls_osa_sem_t sem, uint32_t time_ms);
+
+/**
+ * @brief increment the created semaphore.
+ *
+ * @param sem[in]: pointer to the created semaphore.
+ */
+void ls_osa_sem_post(ls_osa_sem_t sem);
+
+/**
+ * @brief create a new thread.
+ *
+ * @param name[in]: the name of thread.
+ * @param func[in]: the thread execution function.
+ * @param arg[in]:  the argument of the thread execution function.
+ * @param stack_size[in]: the at least stack size of the created thread.
+ *
+ * @return the created thread handle if success; NULL if error.
+ */
+ls_osa_thread_t ls_osa_thread_create(const char *name,
+                      void(*func)(void *), void *arg, size_t stack_size);
+
+/**
+ * @brief terminate the create thread.
+ *
+ * @param thread[in]: pointer to the created thread.
+ */
+void ls_osa_thread_destroy(ls_osa_thread_t thread);
 
 #endif /* _LS_OSA_H_ */
 

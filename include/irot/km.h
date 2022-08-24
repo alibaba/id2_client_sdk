@@ -37,12 +37,21 @@ extern "C" {
 typedef void * km_op_handle_t;
 
 /* for import key only support KM_KEY_FORMAT_RAW now */
-/* for export key only support KM_KEY_FORMAT_ASN1 now */
+/* for export key only support KM_KEY_FORMAT_X509 now */
 typedef enum {
-    KM_KEY_FORMAT_X509 = 0, /* for public key export*/
+    KM_KEY_FORMAT_X509 = 0, /* for public key export, asn1 encode */
     KM_KEY_FORMAT_PKCS8 = 1, /* for asymmetric key pair import*/
     KM_KEY_FORMAT_RAW = 2, /*  follow km_key_data_t struct */
 } km_format_t;
+
+typedef enum {
+    KM_IROT_TYPE_NONE = 0,
+    KM_IROT_TYPE_KM   = 1,
+    KM_IROT_TYPE_SE   = 2,
+    KM_IROT_TYPE_PUF  = 3,
+    KM_IROT_TYPE_TEE  = 4,
+    KM_IROT_TYPE_DEMO = 5
+} km_irot_type;
 
 typedef enum {
     KM_RSA = 0,
@@ -94,6 +103,9 @@ typedef enum {
     KM_ECP_DP_SECP192K1,      /*!< 192-bits "Koblitz" curve */
     KM_ECP_DP_SECP224K1,      /*!< 224-bits "Koblitz" curve */
     KM_ECP_DP_SECP256K1,      /*!< 256-bits "Koblitz" curve */
+    KM_ECP_DP_SECT163K1,      /*!< 163-bits sect curve */
+    KM_ECP_DP_SECT233K1,      /*!< 233-bits sect curve */
+    KM_ECP_DP_SECT283K1,      /*!< 283-bits sect curve */
     KM_ECP_DP_SMP256R1,       /*!< 256-bits SM2 curve */
     KM_ECP_DP_SMP256R2,       /*!< 256-bits SM2 test curve */
 } km_ecc_group_id_t;
@@ -128,11 +140,13 @@ typedef struct _km_gen_param_t {
 } km_gen_param_t;
 
 typedef struct _km_sign_param {
+    km_key_type key_type;
     km_padding_type padding_type;
     km_digest_type digest_type;
 } km_sign_param;
 
 typedef struct _km_enc_param {
+    km_key_type key_type;
     km_padding_type padding_type;
 } km_enc_param;
 
@@ -198,7 +212,13 @@ typedef struct _km_key_data_t {
     };
 } km_key_data_t;
 
-#ifndef KM_FEATURES_BASIC
+typedef struct _km_keyring_t {
+    km_key_type key_type; //key type for the key which need to import to km
+    uint32_t key_bit;
+    uint32_t payload_len;
+    uint8_t *payload; //key data which is encrypted by id2_key
+} km_keyring_t;
+
 /*
  * km generate key
  * param: in: name: key name
@@ -332,10 +352,9 @@ uint32_t km_envelope_finish(void *ctx, uint8_t *src, size_t src_len,
  * return: see km error code
  * */
 uint32_t km_get_attestation(uint8_t *id, uint32_t *id_len);
-#endif /* KM_FEATURES_BASIC */
 
 /*
- * to get message signature for sm2
+ * to get message signature
  * param: in:     name: key name
  * param: in:     name_len: key name len
  * param: in:     sign_params: the params to sign
@@ -357,7 +376,7 @@ uint32_t km_msg_sign(const char *name, uint32_t name_len,
         uint8_t *signature, uint32_t *signature_len);
 
 /*
- * to get message signature for sm2
+ * to get message signature
  * param: in:     name: key name
  * param: in:     name_len: key name len
  * param: in:     sign_params: the params to sign
@@ -473,6 +492,36 @@ uint32_t km_cipher(const char *name, uint32_t name_len, km_sym_param *cipher_par
         uint8_t *iv, uint32_t iv_len, uint8_t *src, size_t src_len,
         uint8_t *dest, size_t *dest_len);
 /*
+ * km import keyring
+ * param: in: name: key name
+ * param: in: nam_len: key name len
+ * param: in: keyring: keyring
+ * return: see km error code
+ * */
+uint32_t km_import_keyring(const char *name, uint32_t name_len,
+                       km_keyring_t *keyring);
+
+/*
+ * to get key state
+ * param: in:     name: key name
+ * param: in:     name_len: key name len
+ * param: out:    state :prov state
+ *                       0: key not exist
+ *                       1: key exist
+  * return: see km error code
+ * */
+uint32_t km_get_prov_state(const char *name, uint32_t name_len, uint32_t *state);
+
+/*
+ * to get key type
+ * param: in:     name: key name
+ * param: in:     name_len: key name len
+ * param: out:    key_type
+ * return: see km error code
+ * */
+uint32_t km_get_key_type(const char *name, uint32_t name_len, km_key_type *key_type);
+
+/*
  * to show km version and new file for no rsvd part platform
  * return: see km error code
  * */
@@ -484,6 +533,12 @@ uint32_t km_init(void);
  * */
 
 void km_cleanup(void);
+
+/*
+ * to get irot type
+ * return: irot type enum value
+ * */
+uint32_t km_get_irot_type(void);
 
 /*
  * to get id2 id
@@ -514,14 +569,6 @@ uint32_t km_set_id2_state(uint32_t state);
  * return: see km error code
  * */
 uint32_t km_get_id2_state(uint32_t *state);
-
-
-/*
- * encrypt the input data by id2 drived key
- * param: out: the state
- * return: see km error code
- * */
-uint32_t km_id2_dkey_encrypt(const uint8_t *in, uint32_t in_len, uint8_t *out, uint32_t *out_len);
 
 /*********************************************************************/
 /*********************************************************************/
@@ -590,7 +637,7 @@ uint32_t km_blob_mac(uint8_t *key_blob, uint32_t key_blob_len, km_sym_param *mac
         uint8_t *mac, uint32_t *mac_len);
 
 /*
- * to get message signature for sm2
+ * to get message signature
  * param: in:     key_blob: the encrypted key which is used to sign
  * param: in:     key_blob_len: the length of key_blob
  * param: in:     sign_params: the params to sign
@@ -612,7 +659,7 @@ uint32_t km_blob_msg_sign(uint8_t *key_blob, uint32_t key_blob_len,
         uint8_t *signature, uint32_t *signature_len);
 
 /*
- * to get message signature for sm2
+ * to get message signature
  * param: in:     key_blob: the encrypted key which is used to sign
  * param: in:     key_blob_len: the length of key_blob
  * param: in:     sign_params: the params to sign

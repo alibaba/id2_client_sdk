@@ -10,14 +10,15 @@ CFLAGS  += -DCONFIG_ID2_DEBUG
 endif
 
 SRCS += src/id2_client.c
+SRCS += src/id2_dpm.c
+SRCS += src/id2_kpm.c
 
 OBJS := $(patsubst %.cxx,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
 OUT := ../libid2_stub.a
 
 $(OUT): $(OBJS)
-	$(AR) rc $(OUT) $(OBJS)
-	$(RANLIB) $(OUT)
+	$(AR) -r $(OUT) $(OBJS)
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $*.o
 

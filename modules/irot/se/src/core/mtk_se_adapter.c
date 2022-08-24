@@ -288,8 +288,8 @@ _out:
 #if (CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_3DES || \
      CONFIG_CHIP_KEY_TYPE == CHIP_KEY_TYPE_AES)
 irot_result_t irot_hal_sym_crypto(key_object* key_obj, uint8_t key_id,
-                                  const uint8_t* iv, uint32_t iv_len,
-                                  const uint8_t* in, uint32_t in_len,
+                                  uint8_t* iv, uint32_t iv_len,
+                                  uint8_t* in, uint32_t in_len,
                                   uint8_t* out, uint32_t* out_len,
                                   sym_crypto_param_t* crypto_param)
 {
@@ -415,7 +415,7 @@ _out:
 
 #endif  /* CONFIG_CHIP_KEY_TYPE */
 
-irot_result_t irot_hal_hash_sum(const uint8_t* in, uint32_t in_len,
+irot_result_t irot_hal_hash_sum(uint8_t* in, uint32_t in_len,
                                 uint8_t* out, uint32_t* out_len, hash_t type)
 {
     return IROT_ERROR_NOT_SUPPORTED;

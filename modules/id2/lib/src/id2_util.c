@@ -6,7 +6,7 @@
 
 const static char* const string_table = "0123456789ABCDEF";
 
-int is_hex_char(char c)
+int id2_is_hex_char(char c)
 {
     if (c >= '0' && c <= '9') {
         return 1;
@@ -20,7 +20,7 @@ int is_hex_char(char c)
 }
 
 /* 0, 1, 2, ... -> "0123456789ABCDEF" */
-int hex_to_char(uint8_t hex)
+int id2_hex_to_char(uint8_t hex)
 {
     int ch = -1;
 
@@ -32,7 +32,7 @@ int hex_to_char(uint8_t hex)
 }
 
 /* "0123456789ABCDEF" -> 0, 1, 2, ... */
-int char_to_hex(char c)
+int id2_char_to_hex(char c)
 {
     int hex = -1;
 
@@ -47,7 +47,7 @@ int char_to_hex(char c)
     return hex;
 }
 
-int hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len)
+int id2_hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len)
 {
     int32_t i;
     uint8_t temp;
@@ -67,7 +67,7 @@ int hex_to_string(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* ou
     return 0;
 }
 
-int string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len)
+int id2_string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* out_len)
 {
     uint32_t i = 0;
     int high, low;
@@ -81,12 +81,12 @@ int string_to_hex(const uint8_t* in, uint32_t in_len, uint8_t* out, uint32_t* ou
     }
 
     while (i < in_len) {
-        high = char_to_hex(in[i]);
+        high = id2_char_to_hex(in[i]);
         if (high < 0) {
             return -1;
         }
 
-        low = char_to_hex(in[i + 1]);
+        low = id2_char_to_hex(in[i + 1]);
         if (low < 0) {
             return -1;
         }
@@ -109,7 +109,7 @@ void id2_log_hex_dump(const char* name, const uint8_t* data, uint32_t len)
     int col_size = 16;
 
     if (name) {
-        id2_log_debug("%s [length = 0x%04x]\n", name, len);
+        id2_log_debug("%s [length = %d]\n", name, len);
     }
     i = 0;
     pos = 0;

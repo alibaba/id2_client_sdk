@@ -776,18 +776,6 @@ _out:
     return result;
 }
 
-irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_len)
-{
-    if (random == NULL || random_len == NULL) {
-        id2_log_error("invalid input args\n");
-        return IROT_ERROR_BAD_PARAMETERS;
-    }
-
-    id2_log_info("not supported!\n");
-
-    return IROT_ERROR_NOT_SUPPORTED;
-}
-
 irot_result_t id2_client_verify_server(
                          const uint8_t* auth_code, uint32_t auth_code_len,
                          const uint8_t* device_random, uint32_t device_random_len,
@@ -1337,28 +1325,6 @@ irot_result_t id2_client_decrypt(const uint8_t* in, uint32_t in_len, uint8_t* ou
     return IROT_ERROR_NOT_IMPLEMENTED;
 }
 
-irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_len)
-{
-    if (random == NULL || random_len == NULL) {
-        id2_log_error("invalid input args\n");
-        return IROT_ERROR_BAD_PARAMETERS;
-    }
-
-    id2_log_info("not supported!\n");
-
-    return IROT_ERROR_NOT_SUPPORTED;
-}
-
-irot_result_t id2_client_verify_server(
-                         const uint8_t* auth_code, uint32_t auth_code_len,
-                         const uint8_t* device_random, uint32_t device_random_len,
-                         const uint8_t* server_extra, uint32_t server_extra_len)
-{
-    id2_log_info("not implemented!\n");
-
-    return IROT_ERROR_NOT_IMPLEMENTED;
-}
-
 irot_result_t id2_client_get_secret(const char* seed, uint8_t* secret, uint32_t* secret_len)
 {
     id2_log_info("not implemented!\n");
@@ -1396,4 +1362,28 @@ irot_result_t id2_client_load_otp_data(const uint8_t* otp_data, uint32_t otp_dat
 }
 
 #endif /* __DEMO__ */
+
+irot_result_t id2_client_get_device_challenge(uint8_t* random, uint32_t* random_len)
+{
+    id2_log_info("not supported!\n");
+
+    (void)random;
+    (void)random_len;
+
+    return IROT_ERROR_NOT_SUPPORTED;
+}
+
+irot_result_t id2_client_wrap_do_provisioning(const char *host, uint32_t port,
+                  const char *product_key, const char *product_secret, uint32_t timeout_ms)
+{
+    id2_log_info("not supported!");
+
+    (void)host;
+    (void)port;
+    (void)product_key;
+    (void)product_secret;
+    (void)timeout_ms;
+
+    return IROT_ERROR_NOT_SUPPORTED;
+}
 

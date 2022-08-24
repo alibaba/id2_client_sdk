@@ -499,8 +499,10 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
     uint8_t key_type;
     uint32_t key_size = 0;
     uint32_t block_size = 0;
+    uint32_t prov_key_len = 0;
     uint32_t rept_len = 0;
     uint32_t dev_fp_len = 0;
+    uint8_t *prov_key = NULL;
     uint8_t* dev_fp = NULL;
     uint8_t* prov_id = NULL;
     uint8_t* rept_data = NULL;
@@ -529,7 +531,7 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
     }
 
     use_type = token[1] - '0';
-    if (use_type != 0x01) {
+    if (use_type != 0x01 && use_type != 0x02) {
         id2_log_error("not support this use type: 0x%x\n", use_type);
         ret = IROT_ERROR_NOT_SUPPORTED;
         goto _out;
@@ -568,11 +570,41 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
 
 #endif /* !CONFIG_ID2_OTP_X_MODE */
 
-    prov_id = _get_otp_prov_id((uint8_t*)token + 3, key_size);
-    if (prov_id == NULL) {
-        id2_log_error("get prov id fail\n");
-        ret = IROT_ERROR_GENERIC;
-        goto _out;
+     if (use_type == 0x02) {
+         prov_key_len = token_len - 8;
+         prov_key = ls_osa_malloc(prov_key_len);
+         if (prov_key == NULL) {
+             id2_log_error("malloc(%d) fail\n", prov_key_len);
+             ret = IROT_ERROR_GENERIC;
+             goto _out;
+         }
+
+         ret = id2_plat_base64_decode((uint8_t*)token + 8, token_len - 8, prov_key, &prov_key_len);
+         if (ret < 0) {
+             id2_log_error("prov_key base64 decode error.\n");
+             ret = IROT_ERROR_GENERIC;
+             goto _out;
+         }
+
+         if (prov_key == NULL || prov_key_len == 0) {
+             id2_log_error("get prov key fail\n");
+             ret = IROT_ERROR_GENERIC;
+             goto _out;
+         }
+
+         prov_id = _get_otp_prov_id(prov_key, prov_key_len);
+         if (prov_id == NULL) {
+             id2_log_error("get prov id fail\n");
+             ret = IROT_ERROR_GENERIC;
+             goto _out;
+         }
+    } else {
+        prov_id = _get_otp_prov_id((uint8_t*)token + 3, key_size);
+        if (prov_id == NULL) {
+            id2_log_error("get prov id fail\n");
+            ret = IROT_ERROR_GENERIC;
+            goto _out;
+        }
     }
 
     id2_log_hex_dump("prov_id", prov_id, 32);
@@ -604,12 +636,22 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
         goto _out;
     }
 
-    ret = _otp_get_rept_data(key_type,
-                   (uint8_t*)token + 3, key_size,
-                   dev_fp, dev_fp_len, rept_data, &rept_len);
-    if (ret != IROT_SUCCESS) {
-        id2_log_error("get rept data fail, %d\n", ret);
-        goto _out;
+    if (use_type == 2) {
+        ret = _otp_get_rept_data(key_type,
+                       prov_key, prov_key_len,
+                       dev_fp, dev_fp_len, rept_data, &rept_len);
+        if (ret != IROT_SUCCESS) {
+            id2_log_error("get rept data fail, %d\n", ret);
+            goto _out;
+        }
+    } else {
+        ret = _otp_get_rept_data(key_type,
+                       (uint8_t*)token + 3, key_size,
+                       dev_fp, dev_fp_len, rept_data, &rept_len);
+        if (ret != IROT_SUCCESS) {
+            id2_log_error("get rept data fail, %d\n", ret);
+            goto _out;
+        }
     }
 
     if (*len < 4 + 32 + rept_len) {
@@ -634,6 +676,9 @@ irot_result_t id2_client_get_otp_auth_code(const uint8_t* token, uint32_t token_
     id2_log_hex_dump("otp_auth_code", auth_code, *len);
 
 _out:
+    if (prov_key) {
+        ls_osa_free(prov_key);
+    }
     if (prov_id) {
         ls_osa_free(prov_id);
     }
